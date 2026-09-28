@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/constants.dart';
 import '../../config/theme.dart';
-import '../../data/mock_data.dart';
 import '../../models/provider_model.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -52,7 +51,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   bool _verifiedOnly = true;
   bool _availableOnly = true;
   bool _topRatedOnly = false;
-  bool _budgetOnly = false;
 
   @override
   void initState() {
@@ -248,7 +246,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => _snack('Filtres avancés — Bientôt disponible'),
+                  onTap: _openFilters,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -307,8 +305,110 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_verifiedOnly) n++;
     if (_availableOnly) n++;
     if (_topRatedOnly) n++;
-    if (_budgetOnly) n++;
     return n;
+  }
+
+  /// Panneau de filtres (bouton « tune » de la carte de filtres).
+  ///
+  /// Les trois filtres rapides sont modifiables ici : ils étaient jusqu'ici
+  /// seulement supprimables (chips), sans moyen de les réactiver.
+  Future<void> _openFilters() async {
+    var verified = _verifiedOnly;
+    var available = _availableOnly;
+    var topRated = _topRatedOnly;
+
+    final applied = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBorder,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Filtres',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.navy,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SwitchListTile.adaptive(
+                  value: verified,
+                  onChanged: (v) => setSheetState(() => verified = v),
+                  title: const Text('Prestataires vérifiés'),
+                  subtitle: const Text('Identité et métier contrôlés'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                SwitchListTile.adaptive(
+                  value: available,
+                  onChanged: (v) => setSheetState(() => available = v),
+                  title: const Text("Disponibles aujourd'hui"),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                SwitchListTile.adaptive(
+                  value: topRated,
+                  onChanged: (v) => setSheetState(() => topRated = v),
+                  title: const Text('Mieux notés (4.5+)'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => setSheetState(() {
+                          verified = false;
+                          available = false;
+                          topRated = false;
+                        }),
+                        child: const Text('Réinitialiser'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.of(sheetContext).pop(true),
+                        child: const Text('Appliquer'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (applied != true || !mounted) return;
+    setState(() {
+      _verifiedOnly = verified;
+      _availableOnly = available;
+      _topRatedOnly = topRated;
+    });
+    _performSearch();
   }
 
   // ---- Chips des filtres actifs ----
@@ -341,22 +441,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Icons.star_rounded,
               () => setState(() => _topRatedOnly = false),
             ),
-          if (_budgetOnly)
-            _removableChip(
-              '< 15 000 FCFA',
-              null,
-              () => setState(() => _budgetOnly = false),
-            ),
           if (!_topRatedOnly) ...[
             const SizedBox(width: 8),
             _addChip('4.5+', () => setState(() => _topRatedOnly = true)),
-          ],
-          if (!_budgetOnly) ...[
-            const SizedBox(width: 8),
-            _addChip(
-              '< 15 000 FCFA',
-              () => setState(() => _budgetOnly = true),
-            ),
           ],
         ],
       ),
@@ -598,12 +685,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     child: Text('Mieux notés ⭐'),
                   ),
                   DropdownMenuItem(
-                    value: 'online',
-                    child: Text('Réponse rapide ⚡'),
+                    value: 'experience',
+                    child: Text('Plus expérimentés 🛠️'),
                   ),
                   DropdownMenuItem(
-                    value: 'price',
-                    child: Text('Prix croissant 💰'),
+                    value: 'online',
+                    child: Text('Réponse rapide ⚡'),
                   ),
                 ],
                 onChanged: (v) => setState(() => _sort = v ?? 'rating'),
@@ -618,28 +705,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   // ---- Liste des résultats ----
 
   List<ProviderModel> _displayed(List<ProviderModel> source) {
+    // Sans recherche active, on affiche la liste complète de l'API.
+    // (Plus de repli sur des données fictives : MockData.providers.)
     var list = source;
     if (_searchController.text.isEmpty &&
         _selectedCategory == 'all' &&
         _selectedZone == 'Toutes les zones' &&
         source.isEmpty) {
-      list = ref.watch(allProvidersProvider).valueOrNull ?? MockData.providers;
+      list = ref.watch(allProvidersProvider).valueOrNull ?? const [];
     }
-    var out = list.where((p) {
+    final out = list.where((p) {
       if (_verifiedOnly && !p.isVerified) return false;
       if (_availableOnly && !p.isOnline) return false;
       if (_topRatedOnly && p.rating < 4.5) return false;
-      if (_budgetOnly && (p.priceValue == null || p.priceValue! > 15000)) {
-        return false;
-      }
       return true;
     }).toList();
     switch (_sort) {
-      case 'price':
-        out.sort((a, b) =>
-            (a.priceValue ?? double.infinity).compareTo(
-              b.priceValue ?? double.infinity,
-            ));
+      case 'experience':
+        out.sort((a, b) => b.experienceYears.compareTo(a.experienceYears));
       case 'online':
         out.sort((a, b) {
           if (a.isOnline == b.isOnline) return b.rating.compareTo(a.rating);

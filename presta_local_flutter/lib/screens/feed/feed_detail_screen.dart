@@ -6,6 +6,7 @@ import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../models/feed_post_model.dart';
 import '../../providers/app_state_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/shimmer_loading.dart';
 
@@ -95,9 +96,19 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     }
   }
 
+  /// Vrai si l'utilisateur est connecté (les likes/commentaires l'exigent).
+  bool _requireLogin(String action) {
+    if (ref.read(authProvider).status == AuthStatus.authenticated) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Connectez-vous pour $action')),
+    );
+    return false;
+  }
+
   Future<void> _toggleLike() async {
     final post = _post;
     if (post == null) return;
+    if (!_requireLogin('aimer une réalisation')) return;
     try {
       final result = await ref.read(feedServiceProvider).toggleLike(post.id);
       if (!mounted) return;
@@ -117,6 +128,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     final post = _post;
     final text = _commentController.text.trim();
     if (post == null || text.isEmpty || _sending) return;
+    if (!_requireLogin('commenter une réalisation')) return;
     setState(() => _sending = true);
     try {
       final result = await ref

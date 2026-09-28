@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../models/provider_model.dart';
 import '../../providers/app_state_provider.dart';
@@ -13,10 +13,10 @@ import '../../services/auth_service.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/badges.dart';
 import '../../widgets/rating_display.dart';
-import '../auth/login_screen.dart';
 import '../auth/password_reset_screen.dart';
 import '../favorites/favorites_screen.dart';
 import '../feed/feed_create_screen.dart';
+import '../messages/chat_screen.dart';
 import 'profile_edit_screen.dart';
 
 /// Écran de profil (double usage, maquettes « profil_prestataire_devis »
@@ -144,74 +144,80 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
   Widget build(BuildContext context) {
     final favIds =
         ref.watch(favoritesIdsProvider).valueOrNull ?? const <String>[];
-    final isFav = favIds.contains(provider.id);
+    // En-tête = SliverAppBar : la photo de couverture se réduit au défilement
+    // et les informations glissent DERRIÈRE elle (plus de barre opaque qui
+    // « pousse » le contenu).
     return Scaffold(
       backgroundColor: AppTheme.canvas,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
-        ),
-        title: const Text('Profil Prestataire'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert_rounded),
-            onPressed: () {},
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppTheme.inputFill,
-              backgroundImage:
-                  (ref.read(authProvider).userPhoto?.isNotEmpty == true)
-                  ? CachedNetworkImageProvider(
-                      ref.read(authProvider).userPhoto!,
-                    )
-                  : null,
-              child: (ref.read(authProvider).userPhoto?.isNotEmpty == true)
-                  ? null
-                  : const Icon(
-                      Icons.person_rounded,
-                      size: 18,
-                      color: AppTheme.muted,
-                    ),
+      body: CustomScrollView(
+        controller: _scroll,
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 220,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            backgroundColor: AppTheme.canvas,
+            surfaceTintColor: Colors.transparent,
+            foregroundColor: AppTheme.navy,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
+            ),
+            actions: [
+              _roundIcon(
+                favIds.contains(provider.id)
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                () {
+                  final actions = ref.read(favoritesActionsProvider);
+                  if (favIds.contains(provider.id)) {
+                    actions.remove(provider.id);
+                  } else {
+                    actions.add(provider.id);
+                  }
+                },
+                color: favIds.contains(provider.id)
+                    ? AppTheme.danger
+                    : AppTheme.navy,
+              ),
+              const SizedBox(width: 8),
+              _roundIcon(Icons.share_outlined, _share),
+              const SizedBox(width: 12),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.parallax,
+              // Image de couverture + dégradé + photo de profil :
+              // au défilement, elle glisse derrière la barre d'outils.
+              background: _coverBackground(),
             ),
           ),
+          SliverToBoxAdapter(child: _identityCard()),
+          SliverToBoxAdapter(child: _ctaRow()),
+          SliverToBoxAdapter(child: _tabsHeader()),
+          SliverToBoxAdapter(child: _tabViews()),
+          SliverToBoxAdapter(child: _zoneSection()),
+          SliverToBoxAdapter(child: _quoteForm()),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
-      ),
-      body: SingleChildScrollView(
-        controller: _scroll,
-        child: Column(
-          children: [
-            _cover(isFav),
-            _identityCard(),
-            _ctaRow(),
-            _tabsHeader(),
-            _tabViews(),
-            _zoneSection(),
-            _quoteForm(),
-            const SizedBox(height: 32),
-          ],
-        ),
       ),
     );
   }
 
-  /// Cover + boutons flottants + avatar chevauchant.
-  Widget _cover(bool isFav) {
+  /// Photo de couverture + dégradé + photo de profil (en-tête de la fiche).
+  ///
+  /// Rendu dans le `flexibleSpace` du SliverAppBar : au scroll, la couverture
+  /// se replie et le contenu (identité, actions, avis) défile par-dessus /
+  /// derrière elle.
+  Widget _coverBackground() {
     return Stack(
-      clipBehavior: Clip.none,
+      fit: StackFit.expand,
       children: [
         CachedNetworkImage(
           imageUrl: provider.banner,
-          height: 200,
-          width: double.infinity,
           fit: BoxFit.cover,
-          placeholder: (_, __) =>
-              Container(height: 200, color: AppTheme.primarySoft),
+          placeholder: (_, __) => Container(color: AppTheme.primarySoft),
           errorWidget: (_, __, ___) => Container(
-            height: 200,
             color: AppTheme.primary,
             child: const Icon(
               Icons.handyman_rounded,
@@ -220,46 +226,25 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
             ),
           ),
         ),
-        Positioned(
-          top: 12,
-          left: 12,
-          child: _roundIcon(Icons.arrow_back_rounded, () {
-            if (widget.onBack != null) {
-              widget.onBack!();
-            } else {
-              Navigator.of(context).maybePop();
-            }
-          }),
-        ),
-        Positioned(
-          top: 12,
-          right: 12,
-          child: Row(
-            children: [
-              _roundIcon(
-                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                () {
-                  final actions = ref.read(favoritesActionsProvider);
-                  if (isFav) {
-                    actions.remove(provider.id);
-                  } else {
-                    actions.add(provider.id);
-                  }
-                },
-                color: isFav ? AppTheme.danger : AppTheme.navy,
-              ),
-              const SizedBox(width: 8),
-              _roundIcon(Icons.share_outlined, () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Partage — Bientôt disponible')),
-                );
-              }),
-            ],
+        // Dégradé sombre : lisibilité des boutons ronds blancs et de la photo.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.35),
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.30),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
           ),
         ),
+        // Photo de profil + pastille de vérification.
         Positioned(
           left: 16,
-          bottom: -34,
+          bottom: 16,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -267,31 +252,42 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: AppTheme.cardShadow,
                 ),
                 child: CircleAvatar(
-                  radius: 37,
+                  radius: 40,
                   backgroundColor: AppTheme.inputFill,
-                  backgroundImage: CachedNetworkImageProvider(provider.avatar),
+                  backgroundImage: provider.avatar.isNotEmpty
+                      ? CachedNetworkImageProvider(provider.avatar)
+                      : null,
+                  child: provider.avatar.isEmpty
+                      ? const Icon(
+                          Icons.person_rounded,
+                          size: 36,
+                          color: AppTheme.primary,
+                        )
+                      : null,
                 ),
               ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: AppTheme.success,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    size: 13,
-                    color: Colors.white,
+              if (provider.isVerified)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: AppTheme.success,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -314,49 +310,70 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
     );
   }
 
-  /// Carte identité : dispo, nom, titre, zone, note, garantie.
+  /// Carte identité : état, nom, métier, ville/quartier, note et description.
+  ///
+  /// Contenu demandé pour la fiche prestataire : Nom, Prénom, métier, ville,
+  /// description + évaluation. Aucun prix n'est affiché.
   Widget _identityCard() {
+    final zone = provider.locationZone.isNotEmpty
+        ? '${provider.locationZone} · ${provider.location}'
+        : provider.location;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 46, 16, 0),
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: AppTheme.cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (provider.isOnline)
-            const AvailablePill(label: 'Disponible intervention'),
-          if (provider.isOnline) const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              if (provider.isOnline)
+                const AvailablePill(label: 'Disponible'),
+              if (provider.isVerified)
+                const VerifiedPill(label: 'Vérifié PrestLocal'),
+            ],
+          ),
+          const SizedBox(height: 10),
           Text(
             provider.name,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 21,
               fontWeight: FontWeight.w800,
               color: AppTheme.navy,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(
-            provider.title,
-            style: const TextStyle(fontSize: 13, color: AppTheme.muted),
+            provider.title.isEmpty ? 'Prestataire local' : provider.title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primary,
+            ),
           ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(
-                Icons.location_on_outlined,
-                size: 14,
-                color: AppTheme.primary,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  'Basé à ${provider.locationZone.isNotEmpty ? provider.locationZone : provider.location}, intervient dans tout Ouagadougou',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+          const SizedBox(height: 8),
+          if (zone.isNotEmpty)
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 15,
+                  color: AppTheme.muted,
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    zone,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 10),
+          // Évaluation du prestataire (note + nombre d'avis)
           Row(
             children: [
               Container(
@@ -370,7 +387,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
                   children: [
                     const Icon(
                       Icons.star_rounded,
-                      size: 14,
+                      size: 15,
                       color: AppTheme.primary,
                     ),
                     Text(
@@ -387,67 +404,191 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  '(${provider.reviewCount} avis clients certifiés)',
+                  '${provider.reviewCount} avis clients',
                   style: const TextStyle(fontSize: 12, color: AppTheme.muted),
                 ),
               ),
-              const SizedBox(width: 8),
-              const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.security_rounded,
-                    size: 14,
-                    color: AppTheme.success,
-                  ),
-                  SizedBox(width: 3),
-                  Text(
-                    'Garantie Pro',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.success,
-                    ),
-                  ),
-                ],
-              ),
             ],
+          ),
+          if (provider.about.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'À propos',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.navy,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              provider.about.trim(),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.muted,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Boutons d'action principaux : Message, Appel, WhatsApp, Facebook.
+  ///
+  /// Quatre boutons de largeur égale (`Expanded`) : aucun risque de
+  /// débordement horizontal quelle que soit la largeur de l'écran.
+  Widget _ctaRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _actionButton(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: 'Message',
+              primary: true,
+              onTap: _openChat,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _actionButton(
+              icon: Icons.call_outlined,
+              label: 'Appel',
+              onTap: () => _call(provider.phone),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _actionButton(
+              icon: Icons.chat_rounded,
+              label: 'WhatsApp',
+              color: const Color(0xFF25D366),
+              onTap: _openWhatsApp,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _actionButton(
+              icon: Icons.facebook_rounded,
+              label: 'Facebook',
+              color: const Color(0xFF1877F2),
+              onTap: _openFacebook,
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// Devis express + appel direct.
-  Widget _ctaRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _scrollToQuote,
-              icon: const Icon(Icons.send_to_mobile_outlined, size: 20),
-              label: const Text(
-                'Demander un devis express',
-                style: TextStyle(fontSize: 15),
+  Widget _actionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool primary = false,
+    Color? color,
+  }) {
+    final fg = primary ? Colors.white : (color ?? AppTheme.navy);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        decoration: BoxDecoration(
+          color: primary ? AppTheme.primary : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: primary ? null : Border.all(color: AppTheme.cardBorder),
+          boxShadow: primary ? null : AppTheme.cardShadow,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: fg),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: primary ? Colors.white : AppTheme.navy,
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _call(provider.phone),
-              icon: const Icon(Icons.call_outlined, size: 20),
-              label: const Text('Appel direct'),
-              style: OutlinedButton.styleFrom(backgroundColor: Colors.white),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  /// Partage de la fiche prestataire (copie dans le presse-papiers).
+  Future<void> _share() async {
+    await Clipboard.setData(
+      ClipboardData(
+        text:
+            '${provider.name} — ${provider.title} à ${provider.location}\n'
+            'Découvert sur PrestA Local.',
+      ),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Fiche copiée — collez-la pour partager')),
+    );
+  }
+
+  /// Ouvre (ou crée) la conversation avec le prestataire.
+  Future<void> _openChat() async {
+    if (ref.read(authProvider).status != AuthStatus.authenticated) {
+      _snack('Connectez-vous pour envoyer un message');
+      return;
+    }
+    try {
+      final convId = await ref
+          .read(messageServiceProvider)
+          .startConversation(provider.id);
+      if (!mounted) return;
+      if (widget.onMessageTap != null) {
+        widget.onMessageTap!(convId);
+      } else {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              conversationId: convId,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      _snack('Impossible de démarrer la conversation');
+    }
+  }
+
+  /// Ouvre WhatsApp sur le numéro du prestataire (format international).
+  Future<void> _openWhatsApp() async {
+    final raw = (provider.whatsapp?.isNotEmpty == true)
+        ? provider.whatsapp!
+        : provider.phone;
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      _snack('Numéro indisponible');
+      return;
+    }
+    final uri = Uri.parse('https://wa.me/$digits');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _snack("Impossible d'ouvrir WhatsApp");
+    }
+  }
+
+  /// Ouvre la recherche Facebook sur le nom du prestataire.
+  Future<void> _openFacebook() async {
+    final uri = Uri.parse(
+      'https://www.facebook.com/search/top?q=${Uri.encodeComponent(provider.name)}',
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _snack("Impossible d'ouvrir Facebook");
+    }
   }
 
   /// Onglets Services / Réalisations / Avis.
@@ -475,7 +616,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
             fontWeight: FontWeight.w700,
           ),
           tabs: [
-            const Tab(text: 'Services & Tarifs'),
+            const Tab(text: 'Services'),
             const Tab(text: 'Réalisations'),
             Tab(text: 'Avis clients (${provider.reviewCount})'),
           ],
@@ -491,76 +632,25 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
     );
   }
 
-  /// Grille tarifaire indicative (maquette).
+  /// Services proposés par le prestataire (sans prix : devis en messagerie).
   Widget _servicesTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Grille tarifaire indicative',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.navy,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppTheme.inputFill,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: const Text(
-                'Transparence garantie',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.muted,
-                ),
-              ),
-            ),
-          ],
+        const Text(
+          'Services proposés',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.navy,
+          ),
         ),
         const SizedBox(height: 4),
         const Text(
-          'Tarifs indicatifs hors coût du matériel spécifique. Déplacement inclus dans le périmètre standard.',
+          'Discutez du besoin et du budget directement avec le prestataire via la messagerie.',
           style: TextStyle(fontSize: 12, color: AppTheme.muted, height: 1.5),
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppTheme.primarySoft.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.home_outlined,
-                size: 20,
-                color: AppTheme.primaryPressed,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  provider.priceText.isNotEmpty
-                      ? 'Tarif indicatif : ${provider.priceText}'
-                      : 'Tarif sur devis gratuit',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.navy,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
         ...provider.services.map(
           (s) => Container(
             margin: const EdgeInsets.only(bottom: 8),
@@ -598,7 +688,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SoftPill(label: 'Sur devis'),
+                const SoftPill(label: 'Sur mesure'),
               ],
             ),
           ),
@@ -827,8 +917,140 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
               ),
             ),
           ),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _openReviewDialog,
+            icon: const Icon(Icons.rate_review_outlined, size: 18),
+            label: const Text('Évaluer ce prestataire'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryPressed,
+              side: const BorderSide(color: AppTheme.primary),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  /// Boîte de dialogue d'évaluation : note (1-5) + commentaire,
+  /// puis `POST /api/prestataire/{id}/evaluer/`.
+  Future<void> _openReviewDialog() async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (ref.read(authProvider).status != AuthStatus.authenticated) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Connectez-vous pour laisser un avis')),
+      );
+      return;
+    }
+
+    var note = 5;
+    final commentController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Évaluer ${provider.name}',
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.navy,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Votre note',
+                style: TextStyle(fontSize: 12, color: AppTheme.muted),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: List.generate(5, (index) {
+                  final value = index + 1;
+                  return IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    onPressed: () => setDialogState(() => note = value),
+                    tooltip: '$value étoile${value > 1 ? 's' : ''}',
+                    icon: Icon(
+                      value <= note
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      color: AppTheme.warning,
+                      size: 30,
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: commentController,
+                minLines: 2,
+                maxLines: 4,
+                maxLength: 500,
+                decoration: InputDecoration(
+                  labelText: 'Votre commentaire',
+                  hintText: 'Qualité du travail, délais, accueil...',
+                  filled: true,
+                  fillColor: AppTheme.inputFill,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Publier'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final commentaire = commentController.text.trim();
+    commentController.dispose();
+    if (confirmed != true) return;
+
+    try {
+      await ref
+          .read(providerServiceProvider)
+          .evaluate(providerId: provider.id, note: note, commentaire: commentaire);
+      // Recharge la fiche (nouvel avis + note recalculée) et les listes.
+      ref.invalidate(providerDetailProvider(provider.id));
+      ref.invalidate(allProvidersProvider);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Merci ! Votre avis a été publié')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Avis non enregistré : $e')),
+      );
+    }
   }
 
   /// Zone d'intervention (maquette).
@@ -1101,50 +1323,6 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
               },
             ),
             const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.inputFill,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "ESTIMATION MAIN D'ŒUVRE",
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.4,
-                            color: AppTheme.muted,
-                          ),
-                        ),
-                        Text(
-                          'Hors pièces à remplacer',
-                          style: TextStyle(fontSize: 11, color: AppTheme.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    provider.priceText.isNotEmpty
-                        ? provider.priceText
-                        : (provider.priceValue != null
-                              ? AppConstants.formatFcfa(provider.priceValue!)
-                              : 'Sur devis'),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.primaryPressed,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -1369,15 +1547,6 @@ class _UserDashboard extends ConsumerWidget {
             child: _proBanner(context),
           ),
           _menuSection('MON ACTIVITÉ', [
-            _menuItem(
-              icon: Icons.description_outlined,
-              iconBg: AppTheme.primarySoft,
-              iconColor: AppTheme.primaryPressed,
-              title: 'Mes demandes & devis',
-              subtitle: 'Suivi en direct des chantiers',
-              trailing: const SoftPill(label: 'Bientôt'),
-              onTap: () => _snack(context, 'Mes demandes — Bientôt disponible'),
-            ),
             _menuItem(
               icon: Icons.receipt_long_outlined,
               iconBg: const Color(0xFFDCEAFE),

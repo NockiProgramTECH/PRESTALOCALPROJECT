@@ -2,14 +2,22 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../config/constants.dart';
 import '../config/theme.dart';
 import '../models/provider_model.dart';
 import '../providers/favorites_provider.dart';
 import 'badges.dart';
 
-/// Carte prestataire « recommandés » de l'accueil (maquette) :
-/// photo, nom + note, spécialité, zone, pastilles, tarif + « Voir profil ».
+/// Carte prestataire « recommandés » de l'accueil.
+///
+/// Contenu demandé par la maquette : photo, nom, métier, zone, pastilles
+/// (Vérifié / Disponible), note et bouton « Voir profil ».
+///
+/// Pas de prix : la plateforme met en relation (devis discuté en messagerie),
+/// aucun tarif n'est affiché sur les cartes.
+///
+/// Toutes les rangées utilisent `Expanded`/`Flexible` + `Wrap` : la carte ne
+/// peut plus déborder horizontalement (« right overflowed by X pixels »), même
+/// avec un nom long ou une police agrandie par l'utilisateur.
 class ProviderCard extends ConsumerWidget {
   final ProviderModel provider;
   final VoidCallback? onTap;
@@ -18,11 +26,6 @@ class ProviderCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final price = provider.priceText.isNotEmpty
-        ? provider.priceText
-        : (provider.priceValue != null
-              ? 'Dès ${AppConstants.formatFcfa(provider.priceValue!)}'
-              : 'Sur devis');
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -37,109 +40,99 @@ class ProviderCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          provider.name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.navy,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 16,
-                        color: AppTheme.primary,
-                      ),
-                      Text(
-                        ' ${provider.rating.toStringAsFixed(1)} (${provider.reviewCount})',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.navy,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
+                  // Nom : une seule ligne, tronquée si nécessaire.
                   Text(
-                    provider.title,
+                    provider.name,
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.muted,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.navy,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Row(
+                  // Métier
+                  Text(
+                    provider.title.isEmpty ? 'Prestataire local' : provider.title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Note + localisation sur une ligne souple (Wrap = zéro débordement).
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 13,
-                        color: AppTheme.muted,
-                      ),
-                      Expanded(
-                        child: Text(
-                          ' ${provider.locationZone.isNotEmpty ? provider.locationZone : provider.location}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.muted,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+                      _ratingInline(),
+                      _locationInline(),
                     ],
                   ),
                   const SizedBox(height: 8),
                   StatusPills(
                     isVerified: provider.isVerified,
-                    availabilityLabel: provider.isOnline
-                        ? 'Disponible'
-                        : null,
+                    availabilityLabel: provider.isOnline ? 'Disponible' : null,
                     compact: true,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'TARIF INDICATIF',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                                color: AppTheme.muted,
-                              ),
-                            ),
-                            Text(
-                              price,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _seeProfileButton(),
-                    ],
-                  ),
+                  const SizedBox(height: 10),
+                  _seeProfileButton(),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _ratingInline() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star_rounded, size: 15, color: AppTheme.primary),
+        const SizedBox(width: 3),
+        Text(
+          '${provider.rating.toStringAsFixed(1)} (${provider.reviewCount})',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.navy,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _locationInline() {
+    final zone = provider.locationZone.isNotEmpty
+        ? provider.locationZone
+        : provider.location;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 150),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.location_on_outlined,
+            size: 13,
+            color: AppTheme.muted,
+          ),
+          const SizedBox(width: 2),
+          Flexible(
+            child: Text(
+              zone,
+              style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -163,10 +156,7 @@ class ProviderCard extends ConsumerWidget {
               width: size,
               height: size + 12,
               color: AppTheme.primarySoft,
-              child: const Icon(
-                Icons.person_rounded,
-                color: AppTheme.primary,
-              ),
+              child: const Icon(Icons.person_rounded, color: AppTheme.primary),
             ),
           ),
         ),
@@ -183,13 +173,14 @@ class ProviderCard extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: AppTheme.primary,
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               'Voir profil',
@@ -208,9 +199,10 @@ class ProviderCard extends ConsumerWidget {
   }
 }
 
-/// Carte de résultat de recherche (maquette) : photo + badge délai,
-/// nom + vérifié, note, zone, chips de services, tarif et 3 actions
-/// (devis / appel / chat).
+/// Carte de résultat de recherche : photo + badge, nom, métier, note, zone,
+/// chips de services et 3 actions (devis / appel / chat).
+///
+/// Aucun prix affiché : la demande de devis se fait par messagerie.
 class SearchResultCard extends ConsumerWidget {
   final ProviderModel provider;
   final VoidCallback? onTap;
@@ -231,11 +223,6 @@ class SearchResultCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final price = provider.priceText.isNotEmpty
-        ? provider.priceText
-        : (provider.priceValue != null
-              ? 'À partir de ${AppConstants.formatFcfa(provider.priceValue!)}'
-              : 'Sur devis');
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -253,25 +240,21 @@ class SearchResultCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              provider.name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.navy,
-                              ),
-                            ),
-                          ),
-                          if (provider.isVerified)
-                            const VerifiedPill(label: 'Vérifié'),
-                        ],
+                      Text(
+                        provider.name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.navy,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        provider.title,
+                        provider.title.isEmpty
+                            ? 'Prestataire local'
+                            : provider.title,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -280,54 +263,22 @@ class SearchResultCard extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Row(
+                      const SizedBox(height: 6),
+                      // Pastilles et note en `Wrap` : jamais de débordement.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 15,
-                            color: AppTheme.primary,
-                          ),
-                          Text(
-                            ' ${provider.rating.toStringAsFixed(1)} (${provider.reviewCount} avis)',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.navy,
-                            ),
-                          ),
+                          _ratingInline(),
                           if (provider.isOnline)
-                            const Text(
-                              '  • En ligne',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.success,
-                              ),
-                            ),
+                            const AvailablePill(label: 'En ligne', compact: true),
+                          if (provider.isVerified)
+                            const VerifiedPill(label: 'Vérifié'),
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.navigation_rounded,
-                            size: 13,
-                            color: AppTheme.muted,
-                          ),
-                          Expanded(
-                            child: Text(
-                              ' ${provider.locationZone.isNotEmpty ? provider.locationZone : provider.location}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.muted,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
+                      const SizedBox(height: 6),
+                      _locationInline(),
                     ],
                   ),
                 ),
@@ -363,33 +314,7 @@ class SearchResultCard extends ConsumerWidget {
                     .toList(),
               ),
             ],
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Tarif indicatif',
-                        style: TextStyle(fontSize: 10, color: AppTheme.muted),
-                      ),
-                      Text(
-                        price,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (provider.isOnline)
-                  const AvailablePill(label: 'En ligne', compact: true),
-              ],
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -430,13 +355,58 @@ class SearchResultCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 _squareButton(Icons.call_outlined, onCall),
                 const SizedBox(width: 8),
-                _squareButton(Icons.chat_bubble_outline_rounded, onChat,
-                    filled: true),
+                _squareButton(
+                  Icons.chat_bubble_outline_rounded,
+                  onChat,
+                  filled: true,
+                ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _ratingInline() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star_rounded, size: 15, color: AppTheme.primary),
+        const SizedBox(width: 3),
+        Text(
+          '${provider.rating.toStringAsFixed(1)} (${provider.reviewCount} avis)',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.navy,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _locationInline() {
+    final zone = provider.locationZone.isNotEmpty
+        ? provider.locationZone
+        : provider.location;
+    return Row(
+      children: [
+        const Icon(
+          Icons.navigation_rounded,
+          size: 13,
+          color: AppTheme.muted,
+        ),
+        const SizedBox(width: 3),
+        Expanded(
+          child: Text(
+            zone,
+            style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -459,10 +429,7 @@ class SearchResultCard extends ConsumerWidget {
               width: 72,
               height: 84,
               color: AppTheme.primarySoft,
-              child: const Icon(
-                Icons.person_rounded,
-                color: AppTheme.primary,
-              ),
+              child: const Icon(Icons.person_rounded, color: AppTheme.primary),
             ),
           ),
         ),
@@ -490,8 +457,11 @@ class SearchResultCard extends ConsumerWidget {
     );
   }
 
-  Widget _squareButton(IconData icon, VoidCallback? onTap,
-      {bool filled = false}) {
+  Widget _squareButton(
+    IconData icon,
+    VoidCallback? onTap, {
+    bool filled = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

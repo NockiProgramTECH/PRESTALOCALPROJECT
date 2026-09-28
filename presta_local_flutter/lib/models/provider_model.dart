@@ -20,6 +20,7 @@ class ProviderModel {
   final String avatar;
   final String banner;
   final String about;
+  final int experienceYears; // Années d'expérience (API : `annee_experience`)
   final String priceText; // Texte affiché pour le prix (ex: "À partir de 5 000 CFA")
   final double? priceValue; // Valeur numérique du prix de base
   final List<String> services; // Liste des services proposés
@@ -45,6 +46,7 @@ class ProviderModel {
     required this.avatar,
     required this.banner,
     required this.about,
+    this.experienceYears = 0,
     required this.priceText,
     this.priceValue,
     required this.services,
@@ -121,6 +123,7 @@ class ProviderModel {
       avatar: resolveMediaUrl(json['photo_profil']?.toString()),
       banner: realisations.isNotEmpty ? realisations.first.imageUrl : '',
       about: json['bio']?.toString() ?? '',
+      experienceYears: (json['annee_experience'] as num?)?.toInt() ?? 0,
       priceText: '',
       priceValue: null,
       services: title.isNotEmpty ? [title] : const [],
@@ -149,6 +152,7 @@ class ProviderModel {
       'avatar': avatar,
       'banner': banner,
       'about': about,
+      'experience_years': experienceYears,
       'price_text': priceText,
       'price_value': priceValue,
       'services': services,

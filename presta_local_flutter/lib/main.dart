@@ -79,6 +79,37 @@ class _PrestaLocalAppState extends ConsumerState<PrestaLocalApp> {
       // Thème clair Material 3 personnalisé (voir config/theme.dart)
       theme: AppTheme.lightTheme,
 
+      // Filet de sécurité UI appliqué à TOUTE l'application :
+      //
+      // 1. `DefaultTextStyle` avec `decoration: none` — sans style par défaut,
+      //    Flutter dessine un « double trait jaune » sous les textes rendus
+      //    hors d'un `Material` (overlays, transitions, tooltips…). C'est la
+      //    cause du double trait jaune signalé sur le détail prestataire et
+      //    sur le nom du destinataire dans la messagerie.
+      // 2. Taille de police bornée (0.9 → 1.2) — évite les débordements
+      //    (« right/bottom overflowed ») quand l'utilisateur agrandit la
+      //    police de son téléphone.
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: media.textScaler.clamp(
+              minScaleFactor: 0.9,
+              maxScaleFactor: 1.2,
+            ),
+          ),
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              decoration: TextDecoration.none,
+              color: AppTheme.navy,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
+
       // Écran racine : détermine la destination selon l'état de session.
       // - session en cours de restauration  -> écran de démarrage
       // - utilisateur connecté              -> navigation principale

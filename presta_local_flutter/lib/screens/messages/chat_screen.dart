@@ -9,11 +9,19 @@ import '../../providers/app_state_provider.dart';
 /// ---------------------------------------------------------------------------
 /// Écran de chat individuel avec un prestataire (temps réel)
 ///
-/// Fonctionnalités :
-/// - Affichage des messages dans des bulles
-/// - Envoi de messages (optimiste + persistance via API)
-/// - Réception **instantanée** via WebSocket (aucun rechargement)
-/// - Présence en ligne du prestataire
+/// - Affichage des messages dans des bulles ;
+/// - Envoi optimiste + persistance via l'API ;
+/// - Réception instantanée via WebSocket (`/ws/chat/<id>/`) ;
+/// - Présence en ligne du prestataire.
+///
+/// Correctifs apportés :
+/// - `Material` + `Scaffold` explicites (plus d'erreur
+///   « No Material widget found ») ;
+/// - mise en page strictement bornée : la liste est dans un `Expanded`,
+///   les bulles dans des `Flexible` → plus de « bottom overflowed by X pixels » ;
+/// - styles de texte explicites (`decoration: none`) → plus de double trait
+///   jaune sous le nom du destinataire ;
+/// - la barre de saisie reste au-dessus du clavier (`SafeArea` + `Material`).
 /// ---------------------------------------------------------------------------
 class ChatScreen extends ConsumerStatefulWidget {
   final String conversationId;
@@ -97,17 +105,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Reçoit en temps réel un message du prestataire.
   void _onIncomingMessage(MessageModel message) {
     if (!mounted) return;
-    // Évite les doublons (par id).
     if (_messages.any((m) => m.id == message.id)) return;
     setState(() {
       _messages = [..._messages, message];
     });
   }
 
-  /// Reçoit un événement de présence (en ligne / hors ligne).
   void _onPresence(bool online, String userId) {
     if (!mounted) return;
-    setState(() => _isOnline = online);
+    setState(() {
+      _isOnline = online;
+      _wsConnected = true;
+    });
   }
 
   void _onDisconnected() {
@@ -115,8 +124,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     setState(() => _wsConnected = false);
   }
 
-  /// Envoie un message : affichage optimiste puis persistance via l'API
-  /// (le serveur diffuse aussi au groupe WebSocket).
+  /// Envoie un message : affichage optimiste puis persistance via l'API.
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     final selfId = ref.read(currentUserIdProvider);
@@ -133,7 +141,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       timestamp: DateTime.now(),
     );
 
-    // Optimiste : affiche immédiatement et vide le champ.
     _messageController.clear();
     setState(() => _messages = [..._messages, optimistic]);
 
@@ -145,14 +152,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         selfUserId: selfId,
       );
       if (!mounted) return;
-      // Remplace la bulle optimiste par le message confirmé (même texte).
       setState(() {
         _messages = _messages.map((m) => m.id == tempId ? sent : m).toList();
+        _wsConnected = true;
       });
-      _setWsConnected();
     } catch (e) {
       if (!mounted) return;
-      // Échec : retire la bulle, restaure le texte, informe l'utilisateur.
       setState(() {
         _messages = _messages.where((m) => m.id != tempId).toList();
         _messageController.text = text;
@@ -160,14 +165,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Échec de l\'envoi : ${e.toString()}')),
       );
-    }
-  }
-
-  /// Marque le WebSocket comme connecté (au premier envoi réussi on considère
-  /// que le canal est actif, sinon la reconnexion gère le flux entrant).
-  void _setWsConnected() {
-    if (mounted && !_wsConnected) {
-      setState(() => _wsConnected = true);
     }
   }
 
@@ -180,16 +177,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: AppTheme.canvas,
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: AppTheme.canvas,
         appBar: AppBar(
-          backgroundColor: AppTheme.primaryGreen,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: AppTheme.navy,
           elevation: 0,
+          scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_rounded),
             onPressed: widget.onBack,
           ),
           titleSpacing: 0,
@@ -197,12 +195,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                backgroundColor: AppTheme.inputFill,
                 backgroundImage: _providerAvatar.isNotEmpty
                     ? CachedNetworkImageProvider(_providerAvatar)
                     : null,
                 child: _providerAvatar.isEmpty
-                    ? const Icon(Icons.person, color: Colors.white, size: 20)
+                    ? const Icon(
+                        Icons.person_rounded,
+                        color: AppTheme.muted,
+                        size: 20,
+                      )
                     : null,
               ),
               const SizedBox(width: 10),
@@ -214,9 +216,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     Text(
                       _providerName.isEmpty ? 'Conversation' : _providerName,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppTheme.navy,
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
+                        decoration: TextDecoration.none,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -225,8 +228,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     Text(
                       _statusText,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
+                        color: _isOnline ? AppTheme.success : AppTheme.muted,
                         fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],
@@ -257,20 +262,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_outline, size: 56, color: Colors.grey.shade400),
+              const Icon(
+                Icons.lock_outline,
+                size: 56,
+                color: AppTheme.muted,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Connectez-vous pour discuter avec ce prestataire',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, color: Colors.black54),
+                style: TextStyle(
+                  fontSize: 15,
+                  color: AppTheme.muted,
+                  decoration: TextDecoration.none,
+                ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _promptLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
-                ),
                 child: const Text('Se connecter'),
               ),
             ],
@@ -282,84 +293,106 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Column(
       children: [
         Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            itemCount: _messages.length,
-            reverse: true,
-            itemBuilder: (context, index) {
-              final message =
-                  _messages[_messages.length - 1 - index];
-              return _MessageBubble(message: message);
-            },
-          ),
+          child: _messages.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'Aucun message pour le moment.\n'
+                      'Écrivez le premier message à ce prestataire.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppTheme.muted,
+                        fontSize: 14,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  controller: _scrollController,
+                  // `reverse: true` : la liste est ancrée en bas, les nouveaux
+                  // messages apparaissent au-dessus du champ de saisie et le
+                  // clavier ne provoque aucun débordement.
+                  reverse: true,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[_messages.length - 1 - index];
+                    return _MessageBubble(message: message);
+                  },
+                ),
         ),
+        _inputBar(),
+      ],
+    );
+  }
 
-        // ---- Champ de saisie ----
-        Container(
+  /// Barre de saisie : reste collée au clavier, sans débordement.
+  Widget _inputBar() {
+    return Material(
+      color: Colors.white,
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
+      child: SafeArea(
+        top: false,
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, -2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _messageController,
+                  focusNode: _focusNode,
+                  minLines: 1,
+                  maxLines: 4,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _sendMessage(),
+                  decoration: InputDecoration(
+                    hintText: 'Écrivez un message...',
+                    hintStyle: const TextStyle(color: AppTheme.muted),
+                    filled: true,
+                    fillColor: AppTheme.inputFill,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: const BoxDecoration(
+                  color: AppTheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: _sendMessage,
+                  tooltip: 'Envoyer',
+                  icon: const Icon(
+                    Icons.send_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
               ),
             ],
           ),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    focusNode: _focusNode,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
-                    decoration: InputDecoration(
-                      hintText: 'Écrivez un message...',
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primaryGreen,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    onPressed: _sendMessage,
-                    icon: const Icon(
-                      Icons.send_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    splashRadius: 22,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
-      ],
+      ),
     );
   }
 }
 
-/// Bulle de message individuelle
+/// Bulle de message individuelle (largeur bornée : pas de débordement).
 class _MessageBubble extends StatelessWidget {
   final MessageModel message;
 
@@ -368,26 +401,38 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.sender == MessageSender.user;
+    // Largeur maximale : 78 % de l'écran (le reste respire).
+    final maxBubbleWidth = MediaQuery.of(context).size.width * 0.78;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
-            CircleAvatar(
+            const CircleAvatar(
               radius: 14,
-              backgroundColor: Colors.grey.shade300,
-              child: const Icon(Icons.person, size: 16, color: Colors.grey),
+              backgroundColor: AppTheme.inputFill,
+              child: Icon(
+                Icons.person_rounded,
+                size: 16,
+                color: AppTheme.muted,
+              ),
             ),
             const SizedBox(width: 6),
           ],
-          Flexible(
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
               decoration: BoxDecoration(
-                color: isUser ? AppTheme.primaryGreen : Colors.white,
+                color: isUser ? AppTheme.primary : Colors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
@@ -398,22 +443,22 @@ class _MessageBubble extends StatelessWidget {
                       ? const Radius.circular(4)
                       : const Radius.circular(18),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
+                border: isUser
+                    ? null
+                    : Border.all(color: AppTheme.cardBorder),
+                boxShadow: AppTheme.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     message.text,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isUser ? Colors.white : Colors.black87,
+                      height: 1.35,
+                      color: isUser ? Colors.white : AppTheme.navy,
+                      decoration: TextDecoration.none,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -425,26 +470,24 @@ class _MessageBubble extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           color: isUser
-                              ? Colors.white.withValues(alpha: 0.7)
-                              : Colors.grey.shade500,
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : AppTheme.muted,
+                          decoration: TextDecoration.none,
                         ),
                       ),
                       if (isUser) ...[
                         const SizedBox(width: 4),
-                        if (message.isFailed)
-                          const Icon(
-                            Icons.error_outline,
-                            size: 14,
-                            color: Colors.redAccent,
-                          )
-                        else
-                          Icon(
-                            message.isRead ? Icons.done_all : Icons.done,
-                            size: 14,
-                            color: isUser
-                                ? Colors.white.withValues(alpha: 0.7)
-                                : Colors.grey.shade400,
-                          ),
+                        Icon(
+                          message.isFailed
+                              ? Icons.error_outline
+                              : (message.isRead
+                                    ? Icons.done_all
+                                    : Icons.done),
+                          size: 14,
+                          color: message.isFailed
+                              ? Colors.redAccent
+                              : Colors.white.withValues(alpha: 0.85),
+                        ),
                       ],
                     ],
                   ),
@@ -458,6 +501,7 @@ class _MessageBubble extends StatelessWidget {
   }
 
   String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
   }
 }

@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.db import models
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -192,7 +193,7 @@ def submit_evaluation(request, pk):
             msg = EmailMultiAlternatives(
                 subject, 
                 text_content, 
-                'lankoandeenock002@gmail.com', 
+                settings.DEFAULT_FROM_EMAIL, 
                 [prestataire.email]
             )
             msg.attach_alternative(html_content, "text/html")
@@ -280,7 +281,7 @@ def signup_view(request):
             })
             
             # Utilisation de l'email fourni dans le formulaire
-            msg = EmailMultiAlternatives(subject, text_content, 'lankoandeenock002@gmail.com', [user.email])
+            msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
 
             msg.attach_alternative(html_content, "text/html")
             
@@ -330,7 +331,7 @@ def verify_email_view(request):
                         'domain': request.get_host()
                     })
                     text_content = f"Bienvenue {user.first_name}, activez votre abonnement pour être visible."
-                    msg = EmailMultiAlternatives(subject, text_content, 'lankoandeenock002@gmail.com', [user.email])
+                    msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
                     msg.attach_alternative(html_content, "text/html")
                     msg.send()
                 except Exception as e:
@@ -355,9 +356,15 @@ def password_reset_request_view(request):
     if request.method == 'POST':
         form = PasswordResetRequestForm(request.POST)
         if form.is_valid():
+            # Sécurité : message identique que l'adresse existe ou non
+            # (protection contre l'énumération des comptes).
+            generic_message = (
+                "Si un compte existe pour cette adresse, un code de "
+                "réinitialisation vient d'être envoyé."
+            )
             email = form.cleaned_data.get('email')
             try:
-                user = Prestataire.objects.get(email=email)
+                user = Prestataire.objects.get(email__iexact=email.strip())
                 code = str(random.randint(100000, 999999))
                 user.code_verification = code
                 user.save()
@@ -369,15 +376,16 @@ def password_reset_request_view(request):
                     'code': code
                 })
                 
-                msg = EmailMultiAlternatives(subject, text_content, 'lankoandeenock002@gmail.com', [user.email])
+                msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
                 msg.attach_alternative(html_content, "text/html")
                 msg.send()
                 
                 request.session['reset_user_id'] = str(user.id)
-                messages.success(request, "Un code de réinitialisation a été envoyé à votre adresse email.")
+                messages.success(request, generic_message)
                 return redirect('main:password_reset_confirm')
-            except Prestataire.DoesNotExist:
-                messages.error(request, "Aucun compte n'est associé à cette adresse email.")
+            except (Prestataire.DoesNotExist, Prestataire.MultipleObjectsReturned):
+                messages.success(request, generic_message)
+                return redirect('main:password_reset_confirm')
     else:
         form = PasswordResetRequestForm()
     

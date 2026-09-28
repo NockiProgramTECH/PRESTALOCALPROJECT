@@ -1,36 +1,33 @@
 """
-URL configuration for Core project.
+URL configuration for the PrestLocal project (Django 5.2).
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+- `/`            : site web (templates + PWA)
+- `/api/`        : API REST (DRF + JWT) consommée par l'app Flutter
+- `/ws/`         : WebSockets (Channels) — chat et notifications
+- `/media/`      : uploads utilisateurs (servis par nginx en production)
 """
-from django.contrib import admin
-from django.urls import path,include
+
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import service_worker
+from django.contrib import admin
+from django.urls import include, path
+
+from .views import healthcheck, service_worker
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('main.urls')),
     path('abonnement/', include('Abonnement.urls')),
     path('feed/', include('Feed.urls')),
-    path("api/",include("api.urls")),
-    path("messages/", include("Messagerie.urls")),
-    path("sw.js", service_worker, name="service_worker"),
+    path('api/', include('api.urls')),
+    path('messages/', include('Messagerie.urls')),
+    path('sw.js', service_worker, name='service_worker'),
+    path('healthz', healthcheck, name='healthcheck'),
 ]
 
-
-if settings.DEBUG:
+# Médias (photos de profil, réalisations).
+# - Développement : DEBUG=True -> servis par Django.
+# - Production légère (sans nginx) : SERVE_MEDIA=True -> servis par Django.
+# - Production recommandée : SERVE_MEDIA=False -> servis par nginx (voir docker/nginx.conf).
+if settings.DEBUG or settings.SERVE_MEDIA:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-   

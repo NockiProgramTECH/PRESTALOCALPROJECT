@@ -19,7 +19,11 @@ class RealisationModel {
   factory RealisationModel.fromJson(Map<String, dynamic> json) {
     return RealisationModel(
       id: json['id'].toString(),
-      imageUrl: resolveMediaUrl(json['image']?.toString()),
+      // `image_url` (absolue) est renvoyée par l'API ; `image` reste le
+      // chemin relatif historique — resolveMediaUrl gère les deux cas.
+      imageUrl: resolveMediaUrl(
+        (json['image_url'] ?? json['image'])?.toString(),
+      ),
       title: json['titre']?.toString() ?? '',
     );
   }

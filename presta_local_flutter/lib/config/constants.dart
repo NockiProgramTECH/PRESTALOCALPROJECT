@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+
 /// Constantes globales de l'application PrestA Local
 ///
 /// Contient les chaînes de caractères, URLs, et configurations
@@ -5,19 +8,37 @@
 class AppConstants {
   AppConstants._();
 
+  // ---- URL de l'API ------------------------------------------------------
+  // Surchargée au lancement, sans modifier le code :
+  //
+  //   flutter run --dart-define=API_BASE_URL=http://192.168.1.85:8000
+  //   flutter build apk --dart-define=API_BASE_URL=https://prestalocal.onrender.com
+  //
+  // Sans `--dart-define`, une valeur par défaut adaptée à la plateforme est
+  // utilisée (émulateur Android : 10.0.2.2 = machine hôte).
+  static const String _apiBaseUrlOverride = String.fromEnvironment(
+    'API_BASE_URL',
+  );
+
+  static String get baseUrl {
+    if (_apiBaseUrlOverride.isNotEmpty) return _apiBaseUrlOverride;
+    if (kIsWeb) return 'http://127.0.0.1:8000';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      // 10.0.2.2 = adresse de la machine hôte vue depuis l'émulateur Android.
+      return 'http://10.0.2.2:8000';
+    }
+    return 'http://127.0.0.1:8000';
+  }
+
+  /// Base des médias (photos). L'API renvoie déjà des URL absolues ; ce
+  /// fallback sert aux chemins relatifs renvoyés par certaines vues.
+  static String get assetBaseUrl => baseUrl;
+
   // ---- Informations générales ----
   static const String appName = 'PrestA Local';
   static const String appTagline = 'Trouvez les meilleurs prestataires locaux autour de vous';
   static const String appLocation = 'Ouagadougou, Burkina Faso';
   static const String appCurrency = 'CFA';
-
-  // ---- URLs (à configurer selon l'environnement) ----
-  // IP LAN de la machine de dev (backend Django). Pour un émulateur Android
-  // utiliser 10.0.2.2, pour le web/desktop 127.0.0.1.
-  static const String baseUrl = 'http://192.168.1.67:8000';
-  // static const String baseUrl = 'https://prestalocal.onrender.com';
-  // static const String assetBaseUrl = 'https://prestalocal.onrender.com';
-  static const String assetBaseUrl = 'http://192.168.1.67:8000';
 
   // ---- Zones géographiques (Ouagadougou) ----
   static const List<String> zones = [

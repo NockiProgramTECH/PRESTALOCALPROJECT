@@ -21,12 +21,20 @@ final favoritesIdsProvider = FutureProvider<List<String>>((ref) async {
   return service.getFavorites();
 });
 
-/// Provider qui expose les objets ProviderModel complets des favoris
+/// Provider qui expose les objets [ProviderModel] complets des favoris.
+///
+/// - connecté : les prestataires sont récupérés directement depuis
+///   `GET /api/me/favorites/` (une seule requête, synchro multi-appareils) ;
+/// - sinon / hors ligne : filtrage du cache local sur la liste des providers.
 final favoritesProvidersProvider = FutureProvider<List<ProviderModel>>((ref) async {
+  final service = ref.watch(favoritesServiceProvider);
+
+  final remote = await service.getFavoriteProviders();
+  if (remote != null) return remote;
+
   final favoriteIds = await ref.watch(favoritesIdsProvider.future);
   final providerService = ref.watch(providerServiceProvider);
   final allProviders = await providerService.getAll();
-
   return allProviders.where((p) => favoriteIds.contains(p.id)).toList();
 });
 

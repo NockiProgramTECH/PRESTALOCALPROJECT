@@ -45,7 +45,9 @@ class ProviderService {
     final q = query?.trim() ?? '';
     if (q.isNotEmpty) params['search'] = q;
     if (categoryId != null && categoryId.isNotEmpty) {
-      params['metier'] = categoryId;
+      // `categoryId` = identifiant de catégorie (CategoriePrestation) renvoyé
+      // par `GET /api/categories/`.
+      params['categorie'] = categoryId;
     }
     final data = await _api.get(_buildQueryPath('/api/prestataire/', params));
     return _extractList(data);
@@ -56,12 +58,48 @@ class ProviderService {
     return search(query: categoryId);
   }
 
-  /// Récupère les catégories/métiers depuis l'API.
+  /// Publie (ou met à jour) l'évaluation du client connecté
+  /// (`POST /api/prestataire/{id}/evaluer/`).
   ///
-  /// L'endpoint `GET /api/prestations/` (authentifié) renvoie un tableau
-  /// `[{id, nom}, ...]`. L'icône est déduite du nom via [_iconForName].
+  /// [note] : 1 à 5. [commentaire] : texte libre (facultatif).
+  /// Le backend réalise un `update_or_create` : un client n'a qu'un avis par
+  /// prestataire, un second envoi remplace donc le précédent.
+  Future<void> evaluate({
+    required String providerId,
+    required int note,
+    String commentaire = '',
+  }) async {
+    await _api.post(
+      '/api/prestataire/$providerId/evaluer/',
+      body: {'note': note, 'commentaire': commentaire},
+    );
+  }
+
+  /// Récupère les catégories de prestations depuis l'API.
+  ///
+  /// Endpoint public `GET /api/categories/` → `[{id, nom, description,
+  /// provider_count}, ...]`. L'icône Material est déduite du nom via
+  /// [_iconForName]. Repli sur `GET /api/prestations/` si l'endpoint
+  /// catégories est indisponible (ancien backend).
   Future<List<CategoryModel>> getCategories() async {
-    final data = await _api.getList('/api/prestations/');
+    try {
+      final data = await _api.getList('/api/categories/', authenticated: false);
+      final categories = data.whereType<Map<String, dynamic>>().map((e) {
+        final name = e['nom']?.toString() ?? '';
+        return CategoryModel(
+          id: e['id'].toString(),
+          name: name,
+          icon: _iconForName(name),
+          description: e['description']?.toString() ?? '',
+          providerCount: (e['provider_count'] as num?)?.toInt() ?? 0,
+        );
+      }).toList();
+      if (categories.isNotEmpty) return categories;
+    } catch (_) {
+      // Repli ci-dessous.
+    }
+
+    final data = await _api.getList('/api/prestations/', authenticated: false);
     return data.whereType<Map<String, dynamic>>().map((e) {
       final name = e['nom']?.toString() ?? '';
       return CategoryModel(
