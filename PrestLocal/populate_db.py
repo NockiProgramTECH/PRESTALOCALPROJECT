@@ -1,12 +1,15 @@
 import os
 import django
 import random
+from datetime import timedelta
+
 from django.utils import timezone
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Core.settings')
 django.setup()
 
 from main.models import Ville, CategoriePrestation, Prestation, Prestataire, Evaluation, Realisation
+from Abonnement.models import PlanAbonnement, Abonnement
 
 def populate():
     print("Début du peuplement de la base de données...")
@@ -237,6 +240,42 @@ def populate():
             create_mock_reviews(p_obj, p_info["reviews_count"], p_info["rating"])
 
         print(f"-> {p_obj.first_name} possède maintenant {p_obj.review_count} avis (note moyenne: {p_obj.average_rating:.1f})")
+
+    # 5. Plans d'abonnement + abonnements actifs
+    # Sans abonnement payé/actif, les profils n'apparaissent pas dans les
+    # vues filtrées sur l'abonnement et l'API `?abonnes_only=1` renvoie une
+    # liste vide : on crée donc des données de test cohérentes.
+    plans = [
+        ("Basique", 5000, 30, "Visibilité standard pendant 30 jours."),
+        ("Premium", 15000, 90, "Mise en avant, badge Premium et statistiques."),
+    ]
+    plan_objs = {}
+    for nom, prix, duree, description in plans:
+        plan_obj, created = PlanAbonnement.objects.get_or_create(
+            nom=nom,
+            defaults={"prix": prix, "duree_jours": duree, "description": description},
+        )
+        plan_objs[nom] = plan_obj
+        if created:
+            print(f"Plan créé: {nom}")
+
+    for index, p_info in enumerate(prestataires_mock):
+        prestataire = Prestataire.objects.filter(email=p_info["email"]).first()
+        if prestataire is None:
+            continue
+        plan = plan_objs["Premium"] if index < 3 else plan_objs["Basique"]
+        abonnement, created = Abonnement.objects.get_or_create(
+            prestataire=prestataire,
+            defaults={
+                "plan": plan,
+                "date_fin": timezone.now() + timedelta(days=plan.duree_jours),
+                "est_actif": True,
+                "paye": True,
+                "transaction_id": f"SEED-{index + 1:04d}",
+            },
+        )
+        if created:
+            print(f"Abonnement {plan.nom} activé pour {prestataire.first_name}")
 
     print("Peuplement terminé avec succès !")
 

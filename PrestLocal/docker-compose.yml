@@ -1,5 +1,32 @@
+# ============================================================================
+# PrestLocal — stack de développement / déploiement complet
+#
+#   db     : PostgreSQL (données locales ; peut être remplacé par Neon via .env)
+#   redis  : canal des WebSockets (Channels) + cache
+#   web    : Django (Daphne/ASGI) — migrations + collectstatic au démarrage
+#   nginx  : reverse proxy : sert /static/ et /media/, relaie l'app et /ws/
+#
+# Démarrage :  docker compose up --build
+# Accès      :  http://localhost/           (via nginx)
+#               http://localhost:8000/      (accès direct à Daphne, dev)
+# ============================================================================
 
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-prestalocal}
+      POSTGRES_USER: ${POSTGRES_USER:-prestalocal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prestalocal}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prestalocal} -d ${POSTGRES_DB:-prestalocal}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -19,21 +46,43 @@ services:
     env_file:
       - .env
     environment:
+      # Si DATABASE_URL n'est pas défini dans .env, on utilise le Postgres local.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://prestalocal:prestalocal@db:5432/prestalocal}
       REDIS_URL: redis://redis:6379/0
+      # nginx sert /static/ et /media/ : inutile de faire transiter par Django.
+      SERVE_MEDIA: "false"
+      DEBUG: ${DEBUG:-False}
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
              daphne -b 0.0.0.0 -p 8000 Core.asgi:application"
+    expose:
+      - "8000"
     ports:
       - "8000:8000"
     volumes:
       - static_data:/app/staticfiles
       - media_data:/app/media
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/media:ro
+    depends_on:
+      - web
+
 volumes:
+  postgres_data:
   redis_data:
   static_data:
   media_data:

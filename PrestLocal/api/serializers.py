@@ -1,67 +1,184 @@
 
-from os import read
+import random
+import re
 
-from rest_framework import serializers
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-import random
+from rest_framework import serializers
 
-from main.models import Prestataire, Prestation, Realisation, Ville, Evaluation
 from Abonnement.models import Abonnement
 from Feed.models import Commentaire, Like
+from main.models import (
+    CategoriePrestation,
+    Evaluation,
+    Prestataire,
+    Prestation,
+    Realisation,
+    Ville,
+)
+
+# Numéros burkinabè : +226 XX XX XX XX / 00226... / 8 chiffres locaux
+PHONE_REGEX = re.compile(r'^(\+?226)?[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}$')
+
+
+def send_code_email(user, code, subject, template_name):
+    """Envoie un code (vérification / réinitialisation) par email.
+
+    L'expéditeur provient de `settings.DEFAULT_FROM_EMAIL` (plus d'adresse
+    codée en dur). En développement, `EMAIL_BACKEND` peut pointer vers la
+    console pour éviter d'envoyer de vrais emails.
+    """
+    text_content = f"Votre code est : {code}"
+    html_content = render_to_string(template_name, {'user': user, 'code': code})
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+    )
+    msg.attach_alternative(html_content, "text/html")
+    msg.send(fail_silently=False)
+
 
 class PrestataireSerializers(serializers.ModelSerializer):
-   moyenne_etoile =serializers.FloatField(
-       source ='average_rating',
-       read_only =True
-   )
-   nombre_avis =serializers.IntegerField(
-    source ='review_count',
-    read_only =True
-   )
+    """Prestataire exposé dans la liste (`GET /api/prestataire/`)."""
+    moyenne_etoile = serializers.FloatField(
+        source='average_rating',
+        read_only=True,
+    )
+    nombre_avis = serializers.IntegerField(
+        source='review_count',
+        read_only=True,
+    )
+    abonnement_actif = serializers.BooleanField(
+        source='has_active_subscription',
+        read_only=True,
+    )
+    nom_complet = serializers.SerializerMethodField()
+    photo_profil_url = serializers.SerializerMethodField()
+    ville = serializers.StringRelatedField()
+    metier = serializers.StringRelatedField()
+    is_favorite = serializers.SerializerMethodField()
 
-   abonnement_actif =serializers.BooleanField(
-       source ='has_active_subscription',
-       read_only =True
-   )
-   ville =serializers.StringRelatedField()
-   metier =serializers.StringRelatedField()
-
-   class Meta:
-       model =Prestataire
-       fields =[
-           'id',
-           "first_name",
-           "last_name",
-           "email",
-           "telephone",
-           "photo_profil",
-           "bio",
-           "metier",
-           "ville",
-           "quartier",
-           "annee_experience",
-           "est_verifie",
+    class Meta:
+        model = Prestataire
+        fields = [
+            'id',
+            "first_name",
+            "last_name",
+            "nom_complet",
+            "email",
+            "telephone",
+            "photo_profil",
+            "photo_profil_url",
+            "bio",
+            "metier",
+            "ville",
+            "quartier",
+            "annee_experience",
+            "est_verifie",
             "is_available",
             'moyenne_etoile',
             'nombre_avis',
             'abonnement_actif',
+            'is_favorite',
+        ]
+
+    def get_nom_complet(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
+
+    def get_photo_profil_url(self, obj):
+        return _absolute_media_url(self.context.get('request'), obj.photo_profil)
+
+    def get_is_favorite(self, obj):
+        """Vrai si le prestataire est dans les favoris de l'utilisateur connecté."""
+        return is_favorite_for(self.context.get('request'), obj)
 
 
-       ]
+def is_favorite_for(request, prestataire):
+    """Indique si `prestataire` est en favori pour l'utilisateur de `request`."""
+    if request is None or not getattr(request, 'user', None):
+        return False
+    if not request.user.is_authenticated:
+        return False
+    from main.models import Favorite
+    return Favorite.objects.filter(user=request.user, prestataire=prestataire).exists()
+
+
+def _absolute_media_url(request, file_field):
+    """Retourne l'URL absolue d'un `ImageField` (ou None)."""
+    if not file_field:
+        return None
+    try:
+        url = file_field.url
+    except ValueError:
+        return None
+    if request is not None:
+        return request.build_absolute_uri(url)
+    return url
+
+
+class CategorieSerializer(serializers.ModelSerializer):
+    """Catégorie de prestation (chips de l'accueil / recherche mobile)."""
+    description = serializers.CharField(source='descriptionText', read_only=True)
+    provider_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CategoriePrestation
+        fields = ['id', 'nom', 'description', 'provider_count']
+
+    def get_provider_count(self, obj):
+        """Nombre de prestataires actifs exerçant un métier de cette catégorie."""
+        return Prestataire.objects.filter(
+            role=Prestataire.ROLE_PRESTATAIRE,
+            metier__categorie=obj,
+        ).count()
 
 
 
 class RealisationSerializer(serializers.ModelSerializer):
-    image =serializers.ImageField(read_only =True)
+    """Réalisation exposée dans la fiche détail d'un prestataire.
+
+    Inclut l'URL absolue de l'image et les compteurs d'interactions
+    (`like_count`, `comment_count`) ainsi que `is_liked` pour l'utilisateur
+    connecté — sans requête supplémentaire si la vue a préchargé les
+    relations (`prefetch_related`).
+    """
+    image = serializers.ImageField(read_only=True)
+    image_url = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+
     class Meta:
-        model =Realisation
-        fields =[
+        model = Realisation
+        fields = [
             "id",
             "titre",
             "image",
-            "date_ajout"
+            "image_url",
+            "date_ajout",
+            "like_count",
+            "comment_count",
+            "is_liked",
         ]
+
+    def get_image_url(self, obj):
+        return _absolute_media_url(self.context.get('request'), obj.image)
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.commentaires.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        # `obj.likes.all()` est mis en cache par `prefetch_related` dans la vue.
+        return any(like.user_id == request.user.id for like in obj.likes.all())
 
 class PrestationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -202,23 +319,29 @@ class EvaluationSerializer(serializers.ModelSerializer):
         ]
 
 class PrestatireDetailSerialzer(serializers.ModelSerializer):
-    moyenne_etoile =serializers.FloatField(
-        source ='average_rating',
-        read_only =True
+    """Fiche complète d'un prestataire (`GET /api/prestataire/<uuid>/`).
+
+    Contient les informations à afficher dans l'app mobile : identité,
+    photo de profil (+ URL absolue), métier, ville/quartier, bio,
+    réalisations (portfolio) et évaluations clients.
+    """
+    moyenne_etoile = serializers.FloatField(
+        source='average_rating',
+        read_only=True,
     )
     nombre_avis = serializers.IntegerField(
         source='review_count',
-        read_only=True
+        read_only=True,
     )
 
     abonnement_actif = serializers.BooleanField(
         source='has_active_subscription',
-        read_only=True
+        read_only=True,
     )
 
     realisations = RealisationSerializer(
         many=True,
-        read_only=True
+        read_only=True,
     )
 
     evaluations = EvaluationSerializer(
@@ -226,11 +349,11 @@ class PrestatireDetailSerialzer(serializers.ModelSerializer):
         read_only=True,
     )
 
-    metier = PrestationSerializer(
-        read_only=True
-    )
-
+    metier = PrestationSerializer(read_only=True)
     ville = serializers.StringRelatedField()
+    nom_complet = serializers.SerializerMethodField()
+    photo_profil_url = serializers.SerializerMethodField()
+    is_favorite = serializers.SerializerMethodField()
 
     class Meta:
         model = Prestataire
@@ -239,9 +362,11 @@ class PrestatireDetailSerialzer(serializers.ModelSerializer):
             'id',
             'first_name',
             'last_name',
+            'nom_complet',
             'email',
             'telephone',
             'photo_profil',
+            'photo_profil_url',
             'bio',
 
             'metier',
@@ -262,12 +387,45 @@ class PrestatireDetailSerialzer(serializers.ModelSerializer):
             'nombre_avis',
 
             'abonnement_actif',
+            'is_favorite',
 
             'date_inscription',
 
             'realisations',
             'evaluations',
         ]
+
+    def get_nom_complet(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
+
+    def get_photo_profil_url(self, obj):
+        return _absolute_media_url(self.context.get('request'), obj.photo_profil)
+
+    def get_is_favorite(self, obj):
+        return is_favorite_for(self.context.get('request'), obj)
+
+
+class EvaluationCreateSerializer(serializers.ModelSerializer):
+    """Dépôt / mise à jour d'un avis client sur un prestataire.
+
+    Une seule évaluation par couple (prestataire, client) : un second appel
+    met à jour l'avis existant au lieu d'en créer un doublon.
+    """
+
+    class Meta:
+        model = Evaluation
+        fields = ['note', 'commentaire']
+
+    def validate_note(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("La note doit être comprise entre 1 et 5.")
+        return value
+
+    def validate_commentaire(self, value):
+        value = (value or '').strip()
+        if len(value) < 3:
+            raise serializers.ValidationError("Le commentaire est trop court.")
+        return value
 
 
 # ---------------------------------------------------------------------------
@@ -342,41 +500,45 @@ class PrestationListSerializer(serializers.ModelSerializer):
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
-    """Demande un code de réinitialisation envoyé par email."""
+    """Demande un code de réinitialisation envoyé par email.
+
+    Sécurité : la réponse est **toujours identique**, que l'adresse existe ou
+    non (protection contre l'énumération des comptes). Si le compte existe, un
+    code est généré et envoyé ; sinon rien n'est envoyé.
+    """
     email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()
 
     def validate(self, attrs):
         email = attrs.get('email')
-        try:
-            user = Prestataire.objects.get(email=email)
-        except Prestataire.DoesNotExist:
-            # Ne pas révéler si l'adresse existe ou non.
-            raise serializers.ValidationError(
-                {"email": "Aucun compte n'est associé à cette adresse email."}
-            )
+        user = Prestataire.objects.filter(email__iexact=email).first()
+        # Aucune exception ici : on ne révèle jamais l'existence du compte.
+        # `user` vaut None si l'adresse est inconnue -> aucun email envoyé.
         attrs['user'] = user
         return attrs
 
-    def create(self, validated_data):
-        user = validated_data['user']
+    def save(self, **kwargs):
+        """Génère et envoie le code si le compte existe (sinon ne fait rien).
+
+        Surcharge volontaire de `Serializer.save()` : le sérialiseur ne crée
+        aucun objet en base, il déclenche seulement l'envoi de l'email.
+        """
+        user = self.validated_data.get('user')
+        if user is None:
+            return None
+
         code = str(random.randint(100000, 999999))
         user.code_verification = code
         user.save(update_fields=['code_verification'])
 
-        subject = "Réinitialisation de mot de passe - PrestLocal"
-        text_content = f"Votre code de réinitialisation est : {code}"
-        html_content = render_to_string('emails/password_reset_code.html', {
-            'user': user,
-            'code': code
-        })
-
-        msg = EmailMultiAlternatives(
-            subject, text_content,
-            'lankoandeenock002@gmail.com',
-            [user.email]
+        send_code_email(
+            user,
+            code,
+            subject="Réinitialisation de mot de passe - PrestLocal",
+            template_name='emails/password_reset_code.html',
         )
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()
         return user
 
 
@@ -386,17 +548,18 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
     new_password = serializers.CharField(min_length=8, write_only=True)
 
+    def validate_new_password(self, value):
+        # Applique les validateurs Django (longueur, mot de passe commun, …).
+        from django.contrib.auth.password_validation import validate_password
+        validate_password(value)
+        return value
+
     def validate(self, attrs):
         email = attrs.get('email')
         code = attrs.get('code')
-        try:
-            user = Prestataire.objects.get(email=email)
-        except Prestataire.DoesNotExist:
-            raise serializers.ValidationError(
-                {"email": "Aucun compte n'est associé à cette adresse email."}
-            )
+        user = Prestataire.objects.filter(email__iexact=email.strip().lower()).first()
 
-        if not user.code_verification or user.code_verification != code:
+        if user is None or not user.code_verification or user.code_verification != code:
             raise serializers.ValidationError(
                 {"code": "Code de vérification incorrect."}
             )
@@ -443,6 +606,21 @@ class RegisterSerializer(serializers.ModelSerializer):
             )
         return email
 
+    def validate_telephone(self, value):
+        if value in (None, ''):
+            return value
+        cleaned = value.strip()
+        if not PHONE_REGEX.match(cleaned):
+            raise serializers.ValidationError(
+                "Numéro de téléphone invalide (format attendu : +226 70 00 00 00)."
+            )
+        return cleaned
+
+    def validate_password(self, value):
+        from django.contrib.auth.password_validation import validate_password
+        validate_password(value)
+        return value
+
     def normalized_value(self, value):
         return value.strip().lower()
 
@@ -462,20 +640,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.code_verification = code
         user.save()
 
-        subject = "Code de vérification - PrestLocal"
-        text_content = f"Votre code de vérification est : {code}"
-        html_content = render_to_string('emails/verification_code.html', {
-            'user': user,
-            'code': code,
-        })
-
-        msg = EmailMultiAlternatives(
-            subject, text_content,
-            'lankoandeenock002@gmail.com',
-            [user.email],
+        send_code_email(
+            user,
+            code,
+            subject="Code de vérification - PrestLocal",
+            template_name='emails/verification_code.html',
         )
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()
         return user
 
 
@@ -494,9 +664,10 @@ class VerifyEmailSerializer(serializers.Serializer):
                 {"email": "Aucun compte n'est associé à cette adresse email."}
             )
         if user.is_active:
-            raise serializers.ValidationError(
-                {"email": "Ce compte est déjà actif."}
-            )
+            # Déjà vérifié : réponse idempotente (aucune information révélée).
+            attrs['user'] = user
+            attrs['already_active'] = True
+            return attrs
         if not user.code_verification or user.code_verification != code:
             raise serializers.ValidationError(
                 {"code": "Code de vérification incorrect."}
@@ -509,6 +680,8 @@ class VerifyEmailSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         user = validated_data['user']
+        if validated_data.get('already_active'):
+            return user
         user.is_active = True
         user.code_verification = None
         user.save(update_fields=['is_active', 'code_verification'])
