@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+
+<html lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior-y:none;font-family:'Plus Jakarta Sans',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary-fixed":"#111c2d","on-background":"#1b1c1b","surface-container-lowest":"#ffffff","tertiary-fixed-dim":"#4edea3","on-surface-variant":"#564338","surface-variant":"#e4e2e0","surface-bright":"#fbf9f7","on-primary":"#ffffff","secondary-fixed-dim":"#bcc7de","primary-fixed-dim":"#ffb68d","primary-container":"#ff8a3d","on-tertiary-container":"#00482f","secondary-container":"#d5e0f8","surface":"#fbf9f7","on-secondary-fixed-variant":"#3c475a","on-error":"#ffffff","error":"#ba1a1a","tertiary-fixed":"#6ffbbe","on-primary-fixed":"#321200","on-tertiary-fixed":"#002113","surface-container-highest":"#e4e2e0","secondary":"#545f73","inverse-surface":"#30302f","on-primary-fixed-variant":"#763300","surface-dim":"#dbdad8","on-tertiary-fixed-variant":"#005236","inverse-primary":"#ffb68d","surface-tint":"#9a4600","inverse-on-surface":"#f2f0ee","on-tertiary":"#ffffff","secondary-fixed":"#d8e3fb","primary":"#9a4600","outline":"#8a7266","on-surface":"#1b1c1b","surface-container-low":"#f5f3f1","on-primary-container":"#682d00","error-container":"#ffdad6","on-error-container":"#93000a","surface-container":"#efedec","primary-fixed":"#ffdbc9","on-secondary":"#ffffff","background":"#fbf9f7","outline-variant":"#ddc1b3","tertiary":"#006c49","surface-container-high":"#eae8e6","on-secondary-container":"#586377","tertiary-container":"#22c087"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"gutter-md":"1.5rem","gutter-lg":"2rem","space-md":"1rem","space-xl":"2.25rem","space-xs":"0.25rem","margin":"1rem","space-lg":"1.5rem","margin-md":"1.5rem","gutter":"1rem","margin-lg":"2.5rem","space-sm":"0.5rem"},fontFamily:{"headline-xl-mobile":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"currency-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"label-lg":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"currency-md":["Plus Jakarta Sans"]},fontSize:{"headline-xl-mobile":["30px",{"lineHeight":"38px","letterSpacing":"-0.01em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"currency-lg":["24px",{"lineHeight":"30px","fontWeight":"800"}],"headline-md":["22px",{"lineHeight":"28px","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.01em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"headline-sm":["18px",{"lineHeight":"24px","fontWeight":"600"}],"headline-xl":["40px",{"lineHeight":"48px","letterSpacing":"-0.02em","fontWeight":"700"}],"label-sm":["10px",{"lineHeight":"14px","letterSpacing":"0.05em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-lg-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"700"}],"currency-md":["16px",{"lineHeight":"20px","fontWeight":"700"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-space-sm flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-xs min-w-0 flex-1"><button aria-label="Retour" class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface shrink-0" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><img alt="Logo PrestLocal" class="h-7 w-auto object-contain shrink-0 hidden sm:block" src="https://lh3.googleusercontent.com/aida/AEtjO1Uf8dYtYm6Nj7hOWq6y6KvyGmm_YtfsIqu94wLfRVb9Nbwbw64yQymSGLm5Rv2NXmz38OdNfUQPgkuLDchHYFa--_FW-fKBgMq2SsvXnDCZcgMWbFaZgFz-edO1RoMdrSPNqe-ZlLmjbatSdhd_1VRh-ct6PYkcw9Ej1v28aTNVEmrMNnBdHQAVcO4HLMcZ0-j14RTPLdyBpQsbBHbUMG9xhYRQV-f4hcMyRa5TSwF8u4_Ap6tc_C_4_-o"/><h1 class="font-headline-sm text-headline-sm text-on-surface truncate">Profil Prestataire</h1></div><div class="flex items-center gap-space-xs shrink-0"><button aria-label="Plus d'options" class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface"><span class="material-symbols-outlined text-[24px]">more_vert</span></button><img alt="Profile" class="w-8 h-8 rounded-full object-cover shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCafH2pyEefFVfsmmFHBEVKa-p3OPvwUvODQyBVnsLAc3RJiWDGGys8GJLA4NGAunq4N5SMgBHjvees4eFbdZ6TMX3RPelzXtB5RRmkTgKitlTnZ8qiXIuCfbT2boPZjUO3TMTpt4N9DudjMV3Yrn2qBtdzWyu6M42DSWTw-aJWaOBenVPbPZKEUYMI4tWc1O0YvyFpgXdBo47qWYj9LkyEYqeyVRx4crCyryqp6SR6cJUaVwB1XXGu"/></div></div></header><main class="flex flex-col relative w-full pt-16 bg-surface min-h-screen pb-safe"><div class="flex flex-col w-full pb-12">
+<!-- Hero / Cover Image Section -->
+<div class="relative w-full h-56 sm:h-72 bg-surface-container overflow-hidden">
+<div class="w-full h-full bg-cover bg-center" data-alt="West African professional plumbing workshop setting with neatly aligned copper and PVC pipes, stainless steel tools, wrenches, and sunlight streaming through a clean modern artisan garage in Ouagadougou. Warm amber lighting, high clarity, realistic documentary corporate aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAMlDE_SkxFIEDuX8nCclB5q2XYHT_1yNIZLe_KHEQMy9MNZm7-ivRZWHK5GEsiBsvpT-ZbOQ6oTBPWqEYVRMcGZwoU4KYozzoleNpwWuvngCBltFBquovxfwUPrM6BPGpZ2mwQVkkCtpNFT0ELereoEblPjP9B8wua9n4WcF6ZOkfWTYE0-T0V5MtPH_fmI4jeAb_hdDTY68-_Hwa6Atosf8cpkZvPCwp_zeA-LsYD0p5jsXpoFziL')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-on-background/80 via-on-background/30 to-transparent"></div>
+<!-- Floating Top Actions -->
+<div class="absolute top-space-md left-space-md right-space-md flex items-center justify-between pointer-events-none">
+<button class="pointer-events-auto w-11 h-11 rounded-full bg-surface-container-lowest/80 backdrop-blur-md text-on-surface shadow-md flex items-center justify-center transition-transform active:scale-95" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+</button>
+<div class="flex items-center gap-space-xs pointer-events-auto">
+<button class="w-11 h-11 rounded-full bg-surface-container-lowest/80 backdrop-blur-md text-on-surface shadow-md flex items-center justify-center transition-transform active:scale-95" id="favBtn" onclick="toggleFavorite()">
+<span class="material-symbols-outlined text-[22px] transition-colors" id="favIcon">favorite</span>
+</button>
+<button class="w-11 h-11 rounded-full bg-surface-container-lowest/80 backdrop-blur-md text-on-surface shadow-md flex items-center justify-center transition-transform active:scale-95" onclick="shareProfile()">
+<span class="material-symbols-outlined text-[22px]">share</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Profile Card & Bio Section -->
+<div class="px-margin -mt-14 relative z-10">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-md flex flex-col gap-space-sm">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="relative">
+<img class="w-20 h-20 rounded-xl object-cover shadow-sm bg-surface-container" data-alt="Warm smiling West African Burkinabe male plumber in his late 30s wearing a clean professional navy blue work polo with badge, clear confident expression, natural sunlight, sharp portrait photography, highly trustworthy and friendly." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiiuHxKNYrOg0Zwg70q8UMqFAbKdpEE0KrU2j1tFK0xYHZB_CT2koyrHst_59-iqhMsSvQ7FixJrfqnOkTRXH6uunb7BsOVtcDO-cTT_uz4TxNvbRJaq14DxRKm5lCTKV9qF_BbIHkebvWmt4FfijIKaYWPYTueIkdmwGrCm5BNTS9_ev33sd1MOkwcPfOqGw0lFn5soY6NJTiKVQmPmPI2Ot_vLhdtV0tp6h2c4ZDh6DGDRS5HUSc"/>
+<div class="absolute -bottom-1.5 -right-1.5 bg-tertiary-container text-on-tertiary-container rounded-full p-1 shadow flex items-center justify-center" title="Artisan Vérifié">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<!-- Live Availability Badge -->
+<div class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed shadow-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-label-sm text-label-sm tracking-normal">Disponible intervention</span>
+</div>
+</div>
+<div class="flex flex-col mt-1">
+<div class="flex items-center gap-1.5">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Moussa Ouédraogo</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant font-medium">Plombier professionnel certifié (10 ans d'exp.)</p>
+</div>
+<!-- Trust Metadata Grid -->
+<div class="flex flex-col gap-1.5 pt-1 text-on-surface-variant">
+<div class="flex items-center gap-1.5 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">location_on</span>
+<span>Basé à Ouaga 2000, intervient dans tout Ouagadougou</span>
+</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm">
+<div class="flex items-center gap-1 bg-primary-fixed/40 px-2 py-0.5 rounded-full text-on-primary-fixed">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md font-bold">4.9</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">(58 avis clients certifiés)</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[15px]">security</span> Garantie Pro
+          </span>
+</div>
+</div>
+<!-- Main Action Triggers -->
+<div class="flex flex-col sm:flex-row gap-space-sm pt-2">
+<a class="flex-1 h-12 bg-primary-container text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-sm active:opacity-90 transition-all" href="#devis-form">
+<span class="material-symbols-outlined text-[20px]">send_to_mobile</span>
+<span>Demander un devis express</span>
+</a>
+<a class="h-12 px-space-md bg-surface-container-high text-on-surface rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 active:bg-surface-variant transition-all" href="tel:+22670000000">
+<span class="material-symbols-outlined text-tertiary text-[20px]">call</span>
+<span>Appel direct</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Content Tabs Navigation -->
+<div class="mt-space-md px-margin">
+<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar py-1">
+<button class="tab-pill px-space-md py-2 rounded-full font-label-md text-label-md font-bold whitespace-nowrap transition-all bg-primary-container text-on-primary shadow-sm" id="tab-btn-services" onclick="switchTab('services')" type="button">
+        Services &amp; Tarifs
+      </button>
+<button class="tab-pill px-space-md py-2 rounded-full font-label-md text-label-md font-medium whitespace-nowrap transition-all bg-surface-container text-on-surface-variant" id="tab-btn-realisations" onclick="switchTab('realisations')" type="button">
+        Réalisations
+      </button>
+<button class="tab-pill px-space-md py-2 rounded-full font-label-md text-label-md font-medium whitespace-nowrap transition-all bg-surface-container text-on-surface-variant" id="tab-btn-avis" onclick="switchTab('avis')" type="button">
+        Avis clients (58)
+      </button>
+<button class="tab-pill px-space-md py-2 rounded-full font-label-md text-label-md font-medium whitespace-nowrap transition-all bg-surface-container text-on-surface-variant" id="tab-btn-zone" onclick="switchTab('zone')" type="button">
+        Zone d'action
+      </button>
+</div>
+</div>
+<!-- TAB PANELS -->
+<div class="mt-space-sm px-margin">
+<!-- TAB 1: Services & Tarifs (Active by default) -->
+<div class="tab-content flex flex-col gap-space-sm" id="tab-panel-services">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Grille tarifaire indicative</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full">Transparence garantie</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tarifs indicatifs hors coût du matériel spécifique. Déplacement inclus dans le périmètre standard.</p>
+<!-- Service Item 1 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex items-center justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">water_damage</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Recherche de fuite &amp; colmatage</h4>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Délai moyen: ~1h
+              </span>
+</div>
+</div>
+<div class="text-right shrink-0">
+<div class="font-currency-md text-currency-md text-primary font-bold">5 000</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">FCFA</div>
+</div>
+</div>
+<!-- Service Item 2 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex items-center justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">plumbing</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Débouchage canalisations &amp; WC</h4>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Furet &amp; haute pression
+              </span>
+</div>
+</div>
+<div class="text-right shrink-0">
+<div class="font-currency-md text-currency-md text-primary font-bold">7 500</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">FCFA</div>
+</div>
+</div>
+<!-- Service Item 3 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex items-center justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">mode_fan</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Chauffe-eau pose / remplacement</h4>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">verified</span> Raccordement sécurisé
+              </span>
+</div>
+</div>
+<div class="text-right shrink-0">
+<div class="font-currency-md text-currency-md text-primary font-bold">15 000</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">FCFA</div>
+</div>
+</div>
+<!-- Service Item 4 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex items-center justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">bathtub</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Rénovation plomberie salle de bain</h4>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">handyman</span> Tuyauterie multicouche / encastrée
+              </span>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-label-md text-label-md font-bold text-primary bg-primary-fixed px-2 py-1 rounded-md">Sur devis</span>
+</div>
+</div>
+</div>
+</div>
+<!-- TAB 2: Réalisations -->
+<div class="tab-content hidden flex-col gap-space-sm" id="tab-panel-realisations">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Chantiers récents avant / après</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Travaux réalisés dans les villas et résidences de Ouagadougou.</p>
+<div class="grid grid-cols-2 gap-space-sm mt-1">
+<div class="flex flex-col gap-1.5">
+<div class="relative h-32 rounded-lg overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="High quality finished modern bathroom plumbing with brass fixtures, pristine white subway tile wall, clean silicone joints, ambient warm lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEREgFEqJQVRZH3EW-5TWf7NVDP5yxvNAoci6urgULeIhrvNtZhWSV_iUqz-af_AH5-nAGXXE_s5fpYkfg9bnfqpdrue0IwDJp9VI52DwA0Y_K55m7zdZeSsUp7VqymfsshLBUg5oIsLqco88jaq25K5t1p677ICyFv8cr7_92DKtLb57SbttYiYpJbj0MeeGT_eWZNR7a_F6JBmsce86zKalZ0hb9va3PQGpVo8APxoOZ46DFophe"/>
+<span class="absolute bottom-1 left-1 bg-on-background/80 text-surface-container-lowest font-label-sm text-label-sm px-1.5 py-0.5 rounded">Après rénovation</span>
+</div>
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Salle d'eau Ouaga 2000</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="relative h-32 rounded-lg overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Neat copper pipe installation on brick masonry with high quality pressure valves and manifold in a clean residential building utility room." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBy4Q2CeHfqmbmz5gfQ6m638qkmzFJsMqhVLxYFW9huR1BCff4x_u2p8aH-ec07GrtjovHLGS7HGhQmgPmnul1QejJgoIimCeaNrugx9tliHI8zwvVvcyxU4V0RivlHrygGg6vjQGp4hNNKrgjM8U_OuSTlTo1zaOPbFI8OdFDPZKvxdtwkLr5EUUEEQSG8tFimezCASZ_fia0O5w_Vc7TqJPem_bMIWlJTgtD-P3raRFoA067tO6jj"/>
+<span class="absolute bottom-1 left-1 bg-on-background/80 text-surface-container-lowest font-label-sm text-label-sm px-1.5 py-0.5 rounded">Réseau neuf</span>
+</div>
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Collecteur central Somgandé</span>
+</div>
+</div>
+</div>
+</div>
+<!-- TAB 3: Avis Clients -->
+<div class="tab-content hidden flex-col gap-space-sm" id="tab-panel-avis">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Retours vérifiés</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Basé sur 58 interventions certifiées</p>
+</div>
+<div class="text-right">
+<div class="font-headline-md text-headline-md text-primary font-bold">4.9 / 5</div>
+<div class="flex text-primary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+</div>
+<!-- Review Card 1 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-md text-label-md font-bold">
+                IK
+              </div>
+<span class="font-label-md text-label-lg font-bold text-on-surface">Ibrahim K.</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Il y a 3 jours</span>
+</div>
+<div class="flex text-primary">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface">Moussa est intervenu en 45 minutes pour une grosse fuite d'eau à Kossodo. Travail extrêmement propre et tarif annoncé scrupuleusement respecté.</p>
+</div>
+<!-- Review Card 2 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-label-md text-label-md font-bold">
+                FT
+              </div>
+<span class="font-label-md text-label-lg font-bold text-on-surface">Fatou T.</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Il y a 2 semaines</span>
+</div>
+<div class="flex text-primary">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface">Installation complète d'un nouveau ballon d'eau chaude. Ponctuel, discret et très pédagogue. Je recommande à 100%.</p>
+</div>
+</div>
+</div>
+<!-- TAB 4: Zone & Infos -->
+<div class="tab-content hidden flex-col gap-space-sm" id="tab-panel-zone">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Zone d'intervention</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Moussa se déplace en moto équipée avec tout son matériel dans toute l'agglomération de Ouagadougou.</p>
+<div class="w-full h-40 bg-cover bg-center rounded-lg shadow-inner relative flex items-center justify-center overflow-hidden" data-location="Ouagadougou, Burkina Faso" style="">
+<div class="absolute inset-0 bg-primary/10"></div>
+<div class="relative bg-surface-container-lowest/90 px-3 py-1.5 rounded-full shadow flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">near_me</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">Ouaga 2000 &amp; Rayon 25 km</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-1.5 pt-1">
+<span class="bg-surface-container px-2.5 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant">Ouaga 2000</span>
+<span class="bg-surface-container px-2.5 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant">Zone du Bois</span>
+<span class="bg-surface-container px-2.5 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant">Kalgondin</span>
+<span class="bg-surface-container px-2.5 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant">Gounghin</span>
+<span class="bg-surface-container px-2.5 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant">Pissy</span>
+<span class="bg-surface-container px-2.5 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant">Dassasgho</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Integrated Service / Quotation Request Form Sheet -->
+<section class="mt-space-lg px-margin" id="devis-form">
+<div class="bg-surface-container-lowest rounded-xl p-space-md sm:p-space-lg shadow-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-lg bg-primary-fixed text-on-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">assignment</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Demander un devis rapide</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Réponse sous 15 minutes garantie</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-tertiary bg-tertiary-fixed/50 px-2.5 py-1 rounded-full">Sans engagement</span>
+</div>
+<form class="flex flex-col gap-space-md" id="quoteForm" onsubmit="handleFormSubmit(event)">
+<!-- Field 1: Service Preselection -->
+<div class="flex flex-col gap-1">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface" for="serviceType">Service concerné</label>
+<div class="relative">
+<select class="w-full h-12 bg-surface-container-low text-on-surface rounded-xl px-space-md appearance-none font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-sm" id="serviceType" onchange="updateEstimatedBudget(this.value)">
+<option data-price="5000" value="fuite">Recherche de fuite &amp; colmatage (dès 5 000 FCFA)</option>
+<option data-price="7500" value="debouchage">Débouchage canalisations &amp; WC (dès 7 500 FCFA)</option>
+<option data-price="15000" value="chauffe-eau">Pose ou remplacement chauffe-eau (dès 15 000 FCFA)</option>
+<option data-price="0" value="renovation">Rénovation complète plomberie (Sur mesure)</option>
+<option data-price="0" value="autre">Autre dépannage sanitaire urgent</option>
+</select>
+<span class="material-symbols-outlined absolute right-space-md top-3.5 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<!-- Field 2: Description -->
+<div class="flex flex-col gap-1">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface" for="problemDescription">Description de votre besoin</label>
+<textarea class="w-full bg-surface-container-low text-on-surface rounded-xl p-space-md font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-sm resize-none" id="problemDescription" placeholder="Expliquez brièvement votre panne, bruits, ou vos besoins matériels..." required="" rows="3"></textarea>
+</div>
+<!-- Field 3: Urgency / Timeframe Chips -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface">Délai souhaité</label>
+<div class="grid grid-cols-3 gap-space-xs" id="urgencyGroup">
+<button class="urgency-chip h-11 px-1 rounded-xl font-label-md text-label-md font-bold text-center flex items-center justify-center bg-primary-container text-on-primary shadow-sm transition-all" onclick="selectUrgency(this, 'urgent')" type="button">
+              ⚡ Urgent (Aujourd'hui)
+            </button>
+<button class="urgency-chip h-11 px-1 rounded-xl font-label-md text-label-md font-medium text-center flex items-center justify-center bg-surface-container-low text-on-surface hover:bg-surface-container transition-all" onclick="selectUrgency(this, 'demain')" type="button">
+              Demain matin
+            </button>
+<button class="urgency-chip h-11 px-1 rounded-xl font-label-md text-label-md font-medium text-center flex items-center justify-center bg-surface-container-low text-on-surface hover:bg-surface-container transition-all" onclick="selectUrgency(this, 'semaine')" type="button">
+              Cette semaine
+            </button>
+</div>
+<input id="selectedUrgency" type="hidden" value="urgent"/>
+</div>
+<!-- Field 4: Location / Neighborhood -->
+<div class="flex flex-col gap-1">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface" for="locationInput">Lieu d'intervention (Ouagadougou)</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-space-md text-primary text-[20px]">location_on</span>
+<input class="w-full h-12 bg-surface-container-low text-on-surface rounded-xl pl-11 pr-24 font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-sm" id="locationInput" placeholder="Quartier (ex: Ouaga 2000, Patte d'Oie...)" required="" type="text"/>
+<button class="absolute right-2 px-2.5 py-1.5 bg-surface-container-high hover:bg-surface-variant text-on-surface rounded-lg font-label-sm text-label-sm font-bold flex items-center gap-1 transition-all" onclick="detectGPSLocation()" type="button">
+<span class="material-symbols-outlined text-[16px] text-tertiary">my_location</span>
+<span>GPS</span>
+</button>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary hidden" id="gpsFeedback">📍 Position Ouaga 2000 détectée</span>
+</div>
+<!-- Field 5: Phone Number -->
+<div class="flex flex-col gap-1">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface" for="clientPhone">Votre numéro de téléphone</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-space-md text-on-surface-variant text-[20px]">phone</span>
+<input class="w-full h-12 bg-surface-container-low text-on-surface rounded-xl pl-11 pr-space-md font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-sm" id="clientPhone" placeholder="+226 70 00 00 00" required="" type="tel"/>
+</div>
+</div>
+<!-- Budget Estimation Summary Banner -->
+<div class="p-space-sm rounded-xl bg-surface-container-low flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estimation main d'œuvre</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Hors pièces à remplacer</span>
+</div>
+<div class="text-right">
+<span class="font-currency-md text-currency-md text-primary font-bold" id="budgetEstimateDisplay">5 000 FCFA</span>
+</div>
+</div>
+<!-- Submission Trigger -->
+<div class="flex flex-col gap-2 pt-1">
+<button class="w-full h-14 bg-primary-container text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-md active:scale-[0.99] transition-all" id="submitBtn" type="submit">
+<span class="material-symbols-outlined text-[22px]">send</span>
+<span>Envoyer la demande à Moussa (Gratuit)</span>
+</button>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary">check_circle</span>
+            Moussa s'engage à vous rappeler pour confirmation immédiate
+          </p>
+</div>
+</form>
+<!-- Success State Modal/Alert (Hidden by default) -->
+<div class="hidden p-space-md rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex flex-col gap-2 text-center animate-fade-in" id="successCard">
+<div class="w-12 h-12 mx-auto rounded-full bg-tertiary text-on-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px]">thumb_up</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm font-bold">Demande transmise avec succès !</h4>
+<p class="font-body-md text-body-md">Moussa a reçu votre notification par SMS et WhatsApp. Il prendra contact dans les 15 minutes.</p>
+<button class="mt-2 py-2 px-4 bg-on-tertiary-fixed text-surface-container-lowest rounded-lg font-label-md text-label-md font-bold self-center" onclick="resetFormState()" type="button">
+          Nouvelle demande
+        </button>
+</div>
+</div>
+</section>
+<!-- Interactive JavaScript Logic -->
+<script>
+    function switchTab(tabId) {
+      const tabs = ['services', 'realisations', 'avis', 'zone'];
+      tabs.forEach(t => {
+        const panel = document.getElementById(`tab-panel-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (panel && btn) {
+          if (t === tabId) {
+            panel.classList.remove('hidden');
+            panel.classList.add('flex');
+            btn.classList.add('bg-primary-container', 'text-on-primary', 'font-bold', 'shadow-sm');
+            btn.classList.remove('bg-surface-container', 'text-on-surface-variant', 'font-medium');
+          } else {
+            panel.classList.add('hidden');
+            panel.classList.remove('flex');
+            btn.classList.remove('bg-primary-container', 'text-on-primary', 'font-bold', 'shadow-sm');
+            btn.classList.add('bg-surface-container', 'text-on-surface-variant', 'font-medium');
+          }
+        }
+      });
+    }
+
+    function selectUrgency(element, value) {
+      document.querySelectorAll('.urgency-chip').forEach(chip => {
+        chip.classList.remove('bg-primary-container', 'text-on-primary', 'font-bold', 'shadow-sm');
+        chip.classList.add('bg-surface-container-low', 'text-on-surface', 'font-medium');
+      });
+      element.classList.add('bg-primary-container', 'text-on-primary', 'font-bold', 'shadow-sm');
+      element.classList.remove('bg-surface-container-low', 'text-on-surface', 'font-medium');
+      const hiddenInput = document.getElementById('selectedUrgency');
+      if (hiddenInput) hiddenInput.value = value;
+    }
+
+    function updateEstimatedBudget(service) {
+      const budgetDisplay = document.getElementById('budgetEstimateDisplay');
+      if (!budgetDisplay) return;
+      
+      switch(service) {
+        case 'fuite':
+          budgetDisplay.textContent = '5 000 FCFA';
+          break;
+        case 'debouchage':
+          budgetDisplay.textContent = '7 500 FCFA';
+          break;
+        case 'chauffe-eau':
+          budgetDisplay.textContent = '15 000 FCFA';
+          break;
+        case 'renovation':
+          budgetDisplay.textContent = 'Sur devis';
+          break;
+        default:
+          budgetDisplay.textContent = 'À convenir';
+      }
+    }
+
+    let isFav = false;
+    function toggleFavorite() {
+      isFav = !isFav;
+      const favIcon = document.getElementById('favIcon');
+      if (favIcon) {
+        if (isFav) {
+          favIcon.style.fontVariationSettings = "'FILL' 1";
+          favIcon.classList.add('text-error');
+        } else {
+          favIcon.style.fontVariationSettings = "'FILL' 0";
+          favIcon.classList.remove('text-error');
+        }
+      }
+    }
+
+    function shareProfile() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Moussa Ouédraogo - Artisan Plombier Ouaga',
+          text: 'Découvrez le profil vérifié de Moussa pour vos dépannages plomberie.',
+          url: window.location.href
+        }).catch(() => {});
+      } else {
+        navigator.clipboard?.writeText(window.location.href);
+        alert('Lien du profil copié dans le presse-papier !');
+      }
+    }
+
+    function detectGPSLocation() {
+      const input = document.getElementById('locationInput');
+      const feedback = document.getElementById('gpsFeedback');
+      if (input && feedback) {
+        input.value = "Ouaga 2000, Secteur 15";
+        feedback.classList.remove('hidden');
+        setTimeout(() => {
+          feedback.classList.add('hidden');
+        }, 4000);
+      }
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const form = document.getElementById('quoteForm');
+      const success = document.getElementById('successCard');
+      if (form && success) {
+        form.classList.add('hidden');
+        success.classList.remove('hidden');
+      }
+    }
+
+    function resetFormState() {
+      const form = document.getElementById('quoteForm');
+      const success = document.getElementById('successCard');
+      if (form && success) {
+        form.reset();
+        form.classList.remove('hidden');
+        success.classList.add('hidden');
+      }
+    }
+  </script>
+</div></main></body></html>

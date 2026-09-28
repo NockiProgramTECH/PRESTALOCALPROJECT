@@ -1,0 +1,51 @@
+{% load static %}
+<section class="providers-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Prestataires en vedette</h2>
+            <a href="{% url 'main:prestataire_list' %}" class="view-all">Voir tout</a>
+        </div>
+
+        <div class="providers-grid">
+            {% for prestataire in prestataires|slice:":4" %}
+            <div class="provider-card">
+                <div class="provider-img-container">
+                    {% if prestataire.photo_profil %}
+                        <img src="{{ prestataire.photo_profil.url }}" alt="{{ prestataire.first_name }} {{ prestataire.last_name }}" class="provider-img">
+                    {% else %}
+                        <!-- Premium initial fallback avatar -->
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-green) 0%, #075985 100%); color: var(--white); font-size: 3.5rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+                            {{ prestataire.first_name|slice:":1" }}{{ prestataire.last_name|slice:":1" }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="provider-info">
+                    <h3 class="provider-name">
+                        {{ prestataire.first_name }} {{ prestataire.last_name }}
+                        {% if prestataire.est_verifie %}
+                            <i class="fas fa-check-circle verified-icon" title="Profil vérifié"></i>
+                        {% endif %}
+                    </h3>
+                    <p class="provider-job">{{ prestataire.metier.nom|default:"Prestataire" }}</p>
+                    
+                    <div class="provider-rating">
+                        <span class="stars">
+                            <i class="fas fa-star"></i> {{ prestataire.average_rating|floatformat:1 }}
+                        </span>
+                        <span class="reviews">({{ prestataire.review_count }} avis)</span>
+                    </div>
+                    
+                    <div class="provider-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ prestataire.ville.nom }}{% if prestataire.quartier %}, {{ prestataire.quartier }}{% endif %}</span>
+                    </div>
+
+                    <a href="{% url 'main:prestataire_detail' prestataire.pk %}" class="btn-profile">Voir le profil</a>
+                </div>
+            </div>
+            {% empty %}
+                <p style="grid-column: 1 / -1; text-align: center; color: var(--text-light); padding: 40px 0;">Aucun prestataire en vedette disponible pour le moment.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>

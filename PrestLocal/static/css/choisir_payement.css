@@ -1,0 +1,4 @@
+a:hover {
+    border-color: var(--primary-green) !important;
+    background: var(--bg-soft-green);
+}

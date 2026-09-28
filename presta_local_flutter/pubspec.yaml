@@ -1,0 +1,61 @@
+name: presta_local_flutter
+description: "PrestA Local - Trouvez les meilleurs prestataires locaux autour de vous"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Icônes
+  cupertino_icons: ^1.0.8
+
+  # Gestion d'état moderne
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Police de caractères
+  google_fonts: ^6.2.1
+
+  # Mise en cache des images réseau
+  cached_network_image: ^3.4.1
+
+  # Effets de chargement
+  shimmer: ^3.0.0
+
+  # Formatage des dates
+  intl: ^0.19.0
+
+  # HTTP client pour future API
+  http: ^1.2.2
+
+  # WebSocket pour la messagerie instantanée (Django Channels)
+  web_socket_channel: ^2.4.0
+
+  # URL launching (téléphone, WhatsApp)
+  url_launcher: ^6.3.1
+
+  # Stockage local pour les favoris
+  shared_preferences: ^2.3.4
+
+  # Stockage sécurisé des tokens JWT (Keychain / Keystore / DPAPI)
+  flutter_secure_storage: ^9.2.2
+
+  # Sélection de photo (profil)
+  image_picker: ^1.1.2
+
+  # Types MIME pour l'upload de fichiers
+  http_parser: ^4.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

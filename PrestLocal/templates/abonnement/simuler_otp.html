@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Validation OTP - PrestLocal{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 500px; margin: 60px auto; padding: 0 20px;">
+    <div style="background: var(--white); border-radius: 20px; padding: 40px; box-shadow: var(--shadow-lg); text-align: center;">
+        <div style="width: 80px; height: 80px; background: var(--bg-soft-green); color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 25px;">
+            <i class="fas fa-mobile-alt"></i>
+        </div>
+
+        <h1 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 10px;">Validation du paiement</h1>
+        <p style="color: var(--text-medium); margin-bottom: 30px;">
+            Un code de confirmation a été envoyé sur votre mobile via <strong>{{ methode }}</strong> pour un montant de <strong>{{ plan.prix }} FCFA</strong>.
+        </p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 25px;">
+                <label for="otp" style="display: block; font-weight: 700; margin-bottom: 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Entrez le code OTP (6 chiffres)</label>
+                <input type="text" name="otp" id="otp" maxlength="6" placeholder="0 0 0 0 0 0" required
+                    style="width: 100%; padding: 15px; font-size: 1.5rem; text-align: center; letter-spacing: 10px; border: 2px solid var(--grey-200); border-radius: 12px; outline: none; transition: border-color 0.2s; background: var(--white); color: var(--text-dark);">
+            </div>
+
+            <button type="submit" class="btn-filter" style="width: 100%; padding: 15px; font-weight: 700; background: var(--primary-green); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 1.1rem;">
+                Confirmer le paiement
+            </button>
+        </form>
+
+        <p style="margin-top: 25px; font-size: 0.85rem; color: var(--text-light);">
+            Vous n'avez pas reçu le code ? <a href="#" style="color: var(--primary-green); font-weight: 700; text-decoration: none;">Renvoyer</a>
+        </p>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--grey-200); display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-light); font-size: 0.8rem;">
+            <i class="fas fa-shield-alt"></i> Paiement 100% sécurisé via SSL
+        </div>
+    </div>
+</div>
+
+<script>
+    const otpInput = document.getElementById('otp');
+    otpInput.addEventListener('input', function(e) {
+        // Garder uniquement les chiffres
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+</script>
+
+<link rel="stylesheet" href="{% static 'css/simuler_otp.css' %}">
+{% endblock %}

@@ -1,0 +1,21 @@
+    /* Spécificités additionnelles pour la page de détails */
+    .star-rating-input {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+    .star-rating-input input {
+        display: none;
+    }
+    .star-rating-input label {
+        cursor: pointer;
+        font-size: 1.8rem;
+        color: #D1D5DB;
+        transition: color 0.2s, transform 0.1s;
+    }
+    .star-rating-input label:hover,
+    .star-rating-input label:hover ~ label,
+    .star-rating-input input:checked ~ label {
+        color: var(--primary-yellow);
+    }

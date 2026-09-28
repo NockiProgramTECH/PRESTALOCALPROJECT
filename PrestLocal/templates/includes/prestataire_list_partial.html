@@ -1,0 +1,73 @@
+{% load static %}
+
+<div class="prestataires-grid-new">
+    {% for prestataire in prestataires %}
+    <div class="card-prestataire-new">
+        <a href="{% url 'main:prestataire_detail' prestataire.pk %}" class="card-top-img" aria-label="Voir le profil de {{ prestataire.first_name }}">
+            {% if prestataire.photo_profil %}
+                <img src="{{ prestataire.photo_profil.url }}" alt="{{ prestataire.first_name }} {{ prestataire.last_name }}">
+            {% else %}
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-green) 0%, #075985 100%); color: var(--white); font-weight: 800; font-size: 3rem; text-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+                    {{ prestataire.first_name|slice:":1" }}{{ prestataire.last_name|slice:":1" }}
+                </div>
+            {% endif %}
+        </a>
+        <div class="card-body-new">
+            <h2 class="card-name-new">
+                {{ prestataire.first_name }} {{ prestataire.last_name }}
+                {% if prestataire.est_verifie %}
+                    <i class="fas fa-check-circle verified-icon" style="margin-left: 4px;" title="Profil vérifié"></i>
+                {% endif %}
+            </h2>
+            <p class="card-job-new">{{ prestataire.metier.nom|default:"Professionnel" }}</p>
+            
+            <div class="card-rating-new">
+                <i class="fas fa-star"></i>
+                <span class="rating-val">{{ prestataire.average_rating|floatformat:1 }}</span>
+                <span class="review-count">({{ prestataire.review_count }} avis)</span>
+            </div>
+
+            <div class="card-loc-new">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ prestataire.ville.nom }}{% if prestataire.quartier %}, {{ prestataire.quartier }}{% endif %}</span>
+            </div>
+
+            <div class="card-actions-new">
+                <a href="{% url 'main:prestataire_detail' prestataire.pk %}" class="btn-profile-new">Voir le profil</a>
+                <a href="tel:{{ prestataire.telephone }}" class="btn-call-small" title="Appeler" aria-label="Appeler"><i class="fas fa-phone-alt"></i></a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 24px; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+        <i class="fas fa-user-slash" style="font-size: 3rem; color: var(--text-light); margin-bottom: 16px;"></i>
+        <p style="color: var(--text-medium); font-weight: 600;">Aucun prestataire ne correspond à vos critères de recherche.</p>
+        <a href="{% url 'main:prestataire_list' %}" style="display: inline-block; margin-top: 15px; color: var(--primary-green); font-weight: 700; text-decoration: underline;">Réinitialiser les filtres</a>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<div class="pagination-new" style="display: flex; justify-content: center; gap: 8px; margin-top: 50px;">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&ville={{ current_ville }}&categorie={{ current_categorie }}" class="ajax-page-link" aria-label="Page précédente"><i class="fas fa-chevron-left"></i></a>
+    {% endif %}
+
+    {% for num in paginator.page_range %}
+        {% if page_obj.number == num %}
+            <span class="active-page">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}&q={{ search_query }}&ville={{ current_ville }}&categorie={{ current_categorie }}" class="ajax-page-link">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&ville={{ current_ville }}&categorie={{ current_categorie }}" class="ajax-page-link" aria-label="Page suivante"><i class="fas fa-chevron-right"></i></a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div id="results-count-update" style="display: none;">
+    {{ total_count }} prestataire{{ total_count|pluralize }} trouvé{{ total_count|pluralize }}
+</div>

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Conversation - PrestaLocal{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/conversation.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="conv-page">
+    <div class="conv-header">
+        <a href="{% url 'Messagerie:inbox' %}" class="conv-back" aria-label="Retour"><i class="fas fa-arrow-left"></i></a>
+        {% for p in other_participants %}
+            <div class="conv-avatar {% if not p.photo_profil %}conv-avatar--initials{% endif %}">
+                {% if p.photo_profil %}
+                    <img src="{{ p.photo_profil.url }}" alt="Avatar de {{ p.first_name }}">
+                {% else %}
+                    {{ p.first_name|slice:":1" }}{{ p.last_name|slice:":1" }}
+                {% endif %}
+            </div>
+            <div class="conv-title">
+                <span class="conv-name">{{ p.first_name }} {{ p.last_name }}</span>
+                <span class="conv-presence" data-presence-user="{{ p.pk }}" aria-label="Statut en ligne">
+                    <span class="presence-dot"></span><span class="presence-text">hors ligne</span>
+                </span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="conv-messages" id="convMessages"
+         data-conversation-id="{{ conversation.pk }}"
+         data-user-id="{{ request.user.pk }}">
+        <div class="day-divider">{% now "l j F Y" %}</div>
+        {% for msg in messages %}
+        <div class="message-bubble {% if msg.sender == request.user %}sent{% else %}received{% endif %}"
+             data-sender-id="{{ msg.sender.pk }}">
+            {{ msg.content }}
+            <div class="msg-time">{{ msg.created_at|time:"H:i" }}</div>
+        </div>
+        {% empty %}
+        <div class="conv-empty">
+            <i class="far fa-comment-dots"></i>
+            <p>Aucun message. Envoyez le premier message !</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <form class="conv-form" id="convForm" method="POST">
+        {% csrf_token %}
+        <input type="text" name="content" id="msgInput" placeholder="Écrivez votre message..." autocomplete="off" required>
+        <button type="submit" id="msgSendBtn" aria-label="Envoyer"><i class="fas fa-paper-plane"></i></button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{% static 'js/messagerie.js' %}"></script>
+{% endblock %}

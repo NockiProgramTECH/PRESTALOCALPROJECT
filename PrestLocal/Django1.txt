@@ -1,0 +1,1211 @@
+les ursl avancer
+creation de notre propre ursl
+faison un import:from django.views.default import server_error
+mettre un slash a la fin des liens dans le fichier urls principale
+-----------------------------------------------------------------------
+
+pour inserer des donner statiques dans le template ,on  creer non variable dans la fonction views ensuite on les passe
+dans la variable context qui est un dictionaire,dans le template on appelle la variable en faisant {{nom de la variable}}
+
+--------------------------------------------------------------------------
+==================================================================================================================================================================================
+    LES models
+=============================================================================================================================================================================================
+
+
+. Création d’un modèle simple
+
+Exemple de modèle :
+
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+
+Après migration, ce modèle est prêt à être utilisé.
+
+2. Accéder au Django shell
+python manage.py shell
+
+
+Importer le modèle :
+
+from app.models import Category
+
+3. Création (Create)
+Méthode 1 : création + sauvegarde
+cat = Category(name="Informatique")
+cat.save()
+
+Méthode 2 : création directe
+Category.objects.create(name="Réseaux")
+
+4. Récupération (Read)
+Récupérer tous les objets
+Category.objects.all()
+
+Récupérer un objet précis
+Category.objects.get(id=1)
+
+
+⚠️ get() lève une erreur si l’objet n’existe pas ou s’il y en a plusieurs.
+
+Récupérer avec condition
+Category.objects.filter(name="Informatique")
+
+5. Modification (Update)
+Modifier un objet existant
+cat = Category.objects.get(id=1)
+cat.name = "Développement"
+cat.save()
+
+Mise à jour directe (sans charger l’objet)
+Category.objects.filter(id=1).update(name="Cybersécurité")
+
+6. Suppression (Delete)
+Supprimer un objet précis
+cat = Category.objects.get(id=1)
+cat.delete()
+
+Supprimer plusieurs objets
+Category.objects.filter(name="Réseaux").delete()
+
+7. Méthodes utiles à connaître
+Méthode	Rôle
+create()	Créer et sauvegarder
+save()	Sauvegarder un objet
+get()	Récupérer un objet unique
+filter()	Récupérer une liste
+all()	Tout récupérer
+update()	Modifier rapidement
+delete()	Supprimer
+
+===================================================================================================================================================
+Les relation plusieurs a plusieurs 
+
+En Django, une relation Many-to-Many (plusieurs-à-plusieurs) permet de lier plusieurs objets d’un modèle à plusieurs objets d’un autre modèle.
+Un étudiant peut suivre plusieurs matières, et une matière peut être suivie par plusieurs étudiants.
+On utilise donc une relation Many-to-Many.
+
+Exemple conceptuel :
+
+Étudiant A → Mathématiques, Physique
+
+Étudiant B → Mathématiques, Informatique
+
+En Django, cela permet de gérer facilement les inscriptions sans dupliquer les données, tout en conservant une structure claire et évolutive.
+
+syntaxe de code :
+                 category =models.ManyToManyField(Category)
+    Category etant un models 
+
+
+Pour éviter les erreurs avec une relation Many-to-Many en Django, il faut toujours utiliser les méthodes prévues pour manipuler l’ensemble des relations, et ne jamais faire d’affectation directe.
+
+Voici les méthodes essentielles et leur usage :
+
+1. add()
+
+Ajoute une ou plusieurs relations sans supprimer les existantes.
+
+product.category.add(cat1, cat2)
+
+
+À utiliser lorsque vous voulez compléter la relation.
+
+2. remove()
+
+Supprime une ou plusieurs relations spécifiques.
+
+product.category.remove(cat1)
+
+3. set()
+
+Remplace toutes les relations existantes par celles fournies.
+
+product.category.set([cat1, cat2])
+
+
+Idéal lors d’une mise à jour complète.
+
+4. clear()
+
+Supprime toutes les relations.
+
+product.category.clear()
+
+5. all()
+
+Permet de lire les relations sans modification.
+
+product.category.all()
+
+Règles importantes à respecter
+
+L’objet principal (product) doit être enregistré (save()) avant d’utiliser ces méthodes.
+
+Ne jamais faire :
+
+product.category = cat
+
+Toujours manipuler une relation Many-to-Many comme une collection, pas comme un champ simple.
+
+---------------------------------------------------------------------------------------------------------------
+Relation a ses inverses
+
+Dans une relation Many-to-Many, le sens inverse correspond à l’accès depuis l’autre modèle, c’est-à-dire sans que le champ soit explicitement déclaré dans ce modèle.
+
+Exemple conceptuel
+
+Si le modèle Product possède :
+
+category = models.ManyToManyField(Category)
+
+
+Alors Category accède automatiquement aux produits qui lui sont liés.
+
+Relation inverse (reverse relation)
+
+Depuis une catégorie, on peut récupérer tous les produits associés :
+
+category.product_set.all()
+Nb:meme si le nom du modèle est en majuscule ,le product_set doit etre entierement en minuscule
+
+
+
+product_set est le nom automatique donné par Django pour la relation inverse (sauf si related_name est défini).
+
+Méthodes disponibles côté inverse
+
+Les mêmes méthodes existent que du côté direct :
+
+1. add()
+
+Ajouter un produit à une catégorie :
+
+category.product_set.add(product)
+
+2. remove()
+
+Retirer un produit :
+
+category.product_set.remove(product)
+
+3. set()
+
+Remplacer tous les produits liés :
+
+category.product_set.set([product1, product2])
+
+4. clear()
+
+Supprimer toutes les relations :
+
+category.product_set.clear()
+
+5. all()
+
+Lister les objets liés :
+
+category.product_set.all()
+
+Avec related_name (bonne pratique)
+
+Si vous définissez :
+
+category = models.ManyToManyField(Category, related_name="products")
+
+
+Alors la relation inverse devient plus lisible :
+
+category.products.all()
+category.products.add(product)
+
+Point clé à retenir
+
+Le côté inverse est automatiquement géré par Django.
+
+Les mêmes méthodes (add, remove, set, clear) s’appliquent.
+
+Utiliser related_name améliore fortement la clarté et évite toute confusion.
+
+Cela garantit une manipulation propre et sans erreur des relations Many-to-Many dans les deux sens.
+  =====================================================================================================================================================================================================
+    Qu’est-ce que HttpResponse ?
+
+HttpResponse est l’objet que Django renvoie au navigateur après le traitement d’une requête.
+Une view reçoit une requête HTTP (request) et doit obligatoirement retourner une réponse HTTP : c’est précisément le rôle de HttpResponse.
+
+Schéma logique :
+
+Navigateur → Requête HTTP → View Django → HttpResponse → Navigateur
+
+2. Import de base
+from django.http import HttpResponse
+
+3. Création d’une réponse simple
+Exemple minimal
+def home(request):
+    return HttpResponse("Bienvenue sur le site")
+
+
+👉 Django envoie le texte tel quel au navigateur.
+
+4. Utilité principale de HttpResponse
+
+HttpResponse permet de :
+
+Envoyer du texte brut
+
+Envoyer du HTML
+
+Contrôler le type de contenu
+
+Définir le code HTTP (200, 404, 403, etc.)
+
+Envoyer des fichiers, JSON, ou réponses personnalisées
+
+5. Envoyer du HTML
+def about(request):
+    html = "<h1>À propos</h1><p>Page de présentation</p>"
+    return HttpResponse(html)
+
+
+⚠️ Peu utilisé en pratique, car on préfère render() avec des templates.
+
+6. Définir le code de statut HTTP
+def forbidden(request):
+    return HttpResponse("Accès refusé", status=403)
+
+
+Codes courants :
+
+200 : OK
+
+404 : Non trouvé
+
+403 : Interdit
+
+500 : Erreur serveur
+
+7. Spécifier le type de contenu (content_type)
+Exemple JSON
+def json_view(request):
+    return HttpResponse(
+        '{"status": "ok"}',
+        content_type="application/json"
+    )
+
+Exemple texte brut
+HttpResponse("Message", content_type="text/plain")
+
+8. Manipuler les headers HTTP
+def custom_header(request):
+    response = HttpResponse("Réponse avec header")
+    response["X-App-Name"] = "NockiProgramTECH"
+    return response
+
+9. Envoyer un fichier (exemple simple)
+def download(request):
+    response = HttpResponse("Contenu du fichier")
+    response["Content-Disposition"] = 'attachment; filename="file.txt"'
+    return response
+
+10. Différence entre HttpResponse et render()
+HttpResponse	render()
+Réponse brute	HTML + template
+Simple et direct	Plus structuré
+Pas de contexte	Contexte dynamique
+Tests / API / debug	Pages web
+
+render() retourne internellement un HttpResponse.
+
+11. Bonnes pratiques
+
+Utiliser HttpResponse pour :
+
+Tests rapides
+
+API simples
+
+Messages courts
+
+Utiliser render() pour :
+
+Pages HTML
+
+Interfaces utilisateur
+
+Toujours retourner une réponse depuis une view
+
+Point clé à retenir
+
+Une view Django existe pour produire une HttpResponse.
+Que ce soit du texte, du HTML, du JSON ou un fichier, HttpResponse est le canal officiel entre Django et le navigateur. 
+==============================================================================================================================================================
+. Qu’est-ce que JsonResponse ?
+
+JsonResponse est une sous-classe de HttpResponse qui facilite l’envoi de données JSON aux clients.
+Elle est particulièrement utilisée pour les API ou les réponses asynchrones (AJAX).
+
+Schéma logique :
+
+Navigateur / Client → Requête HTTP → View Django → JsonResponse → Client JSON
+
+2. Import de base
+from django.http import JsonResponse
+
+3. Création d’une réponse JSON simple
+def api_status(request):
+    data = {"status": "ok", "message": "API opérationnelle"}
+    return JsonResponse(data)
+
+
+Django convertit automatiquement le dictionnaire Python en JSON.
+
+Le type MIME est automatiquement défini sur application/json.
+
+4. Utilité principale de JsonResponse
+
+Retourner des données structurées en JSON
+
+Utilisé pour :
+
+API REST
+
+AJAX
+
+Front-end JavaScript
+
+Gérer automatiquement l’encodage UTF-8 et le type de contenu.
+
+5. Options utiles
+5.1 Autoriser les objets non dictionnaires
+
+Par défaut, JsonResponse n’accepte que les dictionnaires.
+Pour envoyer une liste ou autre type, il faut :
+
+def api_list(request):
+    data = ["Python", "Django", "JavaScript"]
+    return JsonResponse(data, safe=False)
+
+5.2 Définir le code HTTP
+return JsonResponse({"error": "Non autorisé"}, status=403)
+
+5.3 Indentation pour lecture humaine (debug)
+return JsonResponse({"status": "ok"}, json_dumps_params={"indent": 4})
+
+5.4 Ajouter des headers personnalisés
+response = JsonResponse({"status": "ok"})
+response["X-App-Name"] = "NockiProgramTECH"
+return response
+
+6. Différence avec HttpResponse
+HttpResponse	JsonResponse
+Texte brut ou HTML	JSON structuré
+Content-type à définir manuellement	application/json automatique
+Nécessite json.dumps() si JSON	Conversion automatique depuis dict Python
+Plus générique	Spécialisé pour API et AJAX
+================================================================================================================================================================
+u’est-ce que Http404 ?
+
+Http404 est une exception Django qui permet de signaler qu’une ressource demandée n’existe pas.
+Lorsque cette exception est levée, Django renvoie automatiquement une page d’erreur 404 au navigateur.
+
+Schéma logique :
+
+Navigateur → Requête HTTP → View Django → Http404 levé → Page 404
+
+2. Import de base
+from django.http import Http404
+
+3. Utilisation simple dans une view
+from django.shortcuts import get_object_or_404
+from app.models import Course
+
+def course_detail(request, course_id):
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        raise Http404("Ce cours n'existe pas")
+    
+    return HttpResponse(f"Cours: {course.name}")
+
+
+Si l’objet n’est pas trouvé, la view lève l’exception.
+
+Django intercepte l’exception et renvoie automatiquement une page 404.
+
+4. Méthode recommandée : get_object_or_404
+
+Django propose une méthode plus pratique qui fait exactement la même chose :
+
+from django.shortcuts import get_object_or_404
+
+def course_detail(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    return HttpResponse(f"Cours: {course.name}")
+
+
+Évite d’écrire le bloc try/except.
+
+Plus lisible et maintenable.
+
+5. Utilité principale
+
+Signaler qu’une ressource n’existe pas.
+
+Générer automatiquement une page d’erreur 404 standard.
+
+Améliorer la robustesse des vues.
+
+Permet de contrôler le message d’erreur si besoin.
+
+6. Personnaliser la page 404
+
+Créer un fichier 404.html dans votre dossier templates :
+
+<h1>Page non trouvée</h1>
+<p>Désolé, la page que vous recherchez n'existe pas.</p>
+
+
+Django l’utilise automatiquement lorsqu’un Http404 est levé.
+
+7. Différence avec un simple HttpResponse
+HttpResponse	Http404
+Retourne une réponse normale	Lève une exception interceptée par Django
+Nécessite de définir le contenu et le status	Status 404 généré automatiquement
+Utilisé pour les pages normales	Utilisé pour signaler une ressource introuvable
+8. Bonnes pratiques
+
+Toujours utiliser get_object_or_404() pour récupérer des objets dans une view.
+
+Ne pas renvoyer un HttpResponse 404 manuellement sauf exception.
+
+Créer un template 404 personnalisé pour une meilleure UX.
+===========================================================================================
+Qu’est-ce que c’est ?
+
+render est une fonction Django qui permet de générer une réponse HTTP en combinant :
+
+Un template HTML
+
+Un contexte (données à afficher dans le template)
+
+Elle retourne internellement un HttpResponse.
+
+1.2. Import
+from django.shortcuts import render
+
+1.3. Syntaxe
+render(request, template_name, context=None, content_type=None, status=None, using=None)
+
+
+request : la requête HTTP
+
+template_name : chemin vers le fichier template
+
+context : dictionnaire de données à passer au template
+
+status : code HTTP optionnel (200, 404, etc.)
+
+1.4. Exemple simple
+def home(request):
+    data = {"title": "Accueil", "message": "Bienvenue sur le site"}
+    return render(request, "home.html", data)
+
+
+Dans home.html :
+
+<h1>{{ title }}</h1>
+<p>{{ message }}</p>
+
+
+Avantages : simple, lisible et intégré au système de templates Django.
+
+Utilisé pour toutes les pages HTML dynamiques.
+
+1.5. Cas pratique
+
+Afficher une liste d’objets :
+
+from app.models import Course
+
+def courses(request):
+    all_courses = Course.objects.all()
+    return render(request, "courses.html", {"courses": all_courses})
+
+2. redirect
+2.1. Qu’est-ce que c’est ?
+
+redirect permet de rediriger l’utilisateur vers une autre URL ou view.
+C’est utile après des actions comme :
+
+Création d’un objet
+
+Formulaire soumis
+
+Login ou logout
+
+2.2. Import
+from django.shortcuts import redirect
+
+2.3. Syntaxe
+redirect(to, *args, permanent=False, **kwargs)
+
+
+to : peut être :
+
+Une URL absolue ou relative
+
+Le nom d’une view (urls.py)
+
+Un objet modèle (avec get_absolute_url() défini)
+
+permanent : True pour redirection permanente (301), False par défaut (302)
+
+2.4. Exemples
+Redirection vers une URL
+def go_home(request):
+    return redirect("/")
+
+Redirection vers une view par son nom
+# urls.py
+path("home/", views.home, name="home")
+
+# views.py
+def after_login(request):
+    return redirect("home")
+
+Redirection après création d’un objet
+def create_course(request):
+    if request.method == "POST":
+        # création du cours
+        return redirect("courses")
+
+3. Différence entre render et redirect
+Fonction	Usage	Retour
+render	Afficher un template HTML avec contexte	HttpResponse
+redirect	Envoyer l’utilisateur vers une autre URL ou view	HttpResponseRedirect
+
+render = affiche une page
+
+redirect = redirige vers une autre page
+
+4. Bonnes pratiques
+
+Utiliser render pour afficher des pages HTML dynamiques
+
+Utiliser redirect après une action POST pour éviter les double soumissions
+
+==================================================================================================================
+1. Objectif
+
+Restreindre l’accès permet de :
+
+Empêcher un utilisateur non connecté d’accéder à certaines pages.
+
+Limiter l’accès à certaines pages selon les permissions ou groupes.
+
+Sécuriser les données sensibles ou administratives.
+
+2. Utilisation de login_required
+2.1. Import
+from django.contrib.auth.decorators import login_required
+
+2.2. Exemple simple
+@login_required
+def profile(request):
+    return render(request, "profile.html")
+
+
+Si l’utilisateur n’est pas connecté, il est automatiquement redirigé vers la page de login.
+
+Par défaut, cette page est définie par LOGIN_URL dans settings.py :
+
+LOGIN_URL = '/login/'
+
+3. Restriction basée sur les permissions
+
+Django propose le décorateur permission_required :
+
+3.1. Import
+from django.contrib.auth.decorators import permission_required
+
+3.2. Exemple
+@permission_required('app.add_course', raise_exception=True)
+def add_course(request):
+    # code pour ajouter un cours
+    return render(request, "add_course.html")
+
+
+Ici, seul un utilisateur ayant la permission add_course peut accéder.
+
+raise_exception=True renvoie une erreur 403 si la permission manque.
+
+4. Restriction basée sur les groupes
+
+Vous pouvez vérifier le groupe d’un utilisateur dans la view :
+
+def admin_dashboard(request):
+    if not request.user.groups.filter(name="Admin").exists():
+        return HttpResponse("Accès interdit", status=403)
+    return render(request, "dashboard.html")
+
+5. Restriction pour les utilisateurs non connectés
+
+Pour rediriger les utilisateurs connectés loin de certaines pages (ex. login, register) :
+
+from django.shortcuts import redirect
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+    return render(request, "login.html")
+
+6. Bonnes pratiques
+
+Utiliser @login_required pour protéger les pages nécessitant un compte.
+
+Utiliser @permission_required ou la vérification de groupe pour des restrictions plus fines.
+
+Toujours gérer le cas utilisateur non autorisé avec un message clair ou un code HTTP approprié (403 ou redirection).
+
+Définir correctement LOGIN_URL dans settings.py.
+
+estriction avec condition
+
+Plutôt que d’utiliser un décorateur standard, on peut vérifier directement des conditions dans la view pour décider si l’utilisateur peut accéder à la page.
+
+1.1. Exemple : vérification d’utilisateur connecté et rôle
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+
+def dashboard(request):
+    # Vérifier si l'utilisateur est connecté
+    if not request.user.is_authenticated:
+        return redirect('login')  # redirige vers la page de login
+
+    # Vérifier si l'utilisateur est dans le groupe "Admin"
+    if not request.user.groups.filter(name="Admin").exists():
+        return HttpResponse("Accès interdit", status=403)
+
+    # Si toutes les conditions sont remplies
+    return render(request, "dashboard.html")
+
+1.2. Exemple : restriction selon un attribut utilisateur
+def special_page(request):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return redirect('home')  # redirige si non autorisé
+    return render(request, "special.html")
+
+
+Ici, on peut combiner plusieurs conditions (is_authenticated, is_staff, is_superuser, group, etc.).
+
+Permet une logique très flexible selon les besoins de l’application.
+
+2. Différence avec login_required
+Critère	login_required	Restriction avec condition
+Vérifie	Si l’utilisateur est connecté	Toute condition personnalisée sur l’utilisateur ou ses attributs
+Flexibilité	Faible (juste connecté ou pas)	Très élevée (groupes, permissions, statut, attributs)
+Code	Décorateur simple	Bloc conditionnel dans la view
+Redirection par défaut	Vers LOGIN_URL	À définir manuellement (redirect ou HttpResponse)
+Usage	Pages générales accessibles aux utilisateurs connectés	Pages avec règles complexes (admin, premium, groupe spécifique, etc.)
+3. Bonnes pratiques
+
+Utiliser login_required si la restriction est simple (juste connecté ou pas).
+
+Utiliser des conditions dans la view si l’accès dépend de plusieurs critères (groupe, rôle, attributs, permissions).
+
+Toujours gérer les cas non autorisés avec une redirection ou un message 403.
+
+Pour un code réutilisable, on peut créer un décorateur personnalisé pour combiner plusieurs conditions.
+
+============================================================================================================================================
+Qu’est-ce que user_passes_test ?
+
+user_passes_test est un décorateur Django qui permet de vérifier si un utilisateur remplit une condition personnalisée avant d’accéder à une view.
+
+Si la condition retourne True, l’utilisateur peut accéder.
+
+Si elle retourne False, il est redirigé vers la page de login ou reçoit une erreur.
+
+2. Import
+from django.contrib.auth.decorators import user_passes_test
+
+3. Syntaxe
+@user_passes_test(test_func, login_url=None, redirect_field_name='next')
+
+
+test_func : fonction qui prend un objet user et retourne True ou False.
+
+login_url : URL vers laquelle rediriger si le test échoue (optionnel, par défaut LOGIN_URL).
+
+redirect_field_name : nom du paramètre GET pour la redirection (par défaut 'next').
+
+4. Exemple simple : accès réservé aux staff
+def is_staff_user(user):
+    return user.is_staff
+
+@user_passes_test(is_staff_user, login_url='/login/')
+def staff_dashboard(request):
+    return render(request, "staff_dashboard.html")
+
+
+Seuls les utilisateurs avec is_staff=True peuvent accéder.
+
+Les autres sont redirigés vers /login/.
+
+5. Exemple : accès réservé à un groupe spécifique
+def is_admin_group(user):
+    return user.groups.filter(name='Admin').exists()
+
+@user_passes_test(is_admin_group, login_url='/login/')
+def admin_panel(request):
+    return render(request, "admin_panel.html")
+
+
+Vérifie si l’utilisateur fait partie du groupe "Admin".
+
+Permet des restrictions très flexibles.
+
+6. Comparaison avec login_required et condition dans la view
+Méthode	Avantages	Limites
+login_required	Très simple, protège les pages pour utilisateurs connectés	Ne gère pas les permissions ou rôles
+Condition dans la view	Flexible, permet toutes les vérifications	Code répétitif si utilisé dans plusieurs views
+user_passes_test	Décorateur réutilisable, flexible pour rôles/groupes/attributs	Nécessite de définir une fonction test
+7. Astuce : combiner avec login_required
+
+user_passes_test ne vérifie pas automatiquement si l’utilisateur est connecté, donc il est courant de le combiner :
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def superuser_dashboard(request):
+    return render(request, "superuser_dashboard.html")
+
+
+L’ordre des décorateurs est important : login_required en premier pour éviter de tester un utilisateur non connecté.
+
+8. Bonnes pratiques
+
+Créer des fonctions test réutilisables pour différents rôles ou groupes.
+
+Combiner login_required si nécessaire.
+
+Toujours définir un login_url ou s’appuyer sur LOGIN_URL de settings.py.
+
+Pour des tests complexes, on peut créer un décorateur personnalisé basé sur user_passes_test.
+
+
+==============================================================================================================================
+Filtres sur les chaînes de caractères (strings)
+upper
+
+Met le texte en majuscules
+
+{{ name|upper }}
+
+lower
+
+Met le texte en minuscules
+
+{{ name|lower }}
+
+title
+
+Met la première lettre de chaque mot en majuscule
+
+{{ name|title }}
+
+capfirst
+
+Met en majuscule la première lettre uniquement
+
+{{ name|capfirst }}
+
+length
+
+Retourne la longueur d’une chaîne ou d’une liste
+
+{{ text|length }}
+
+truncatechars
+
+Coupe une chaîne à un nombre de caractères
+
+{{ description|truncatechars:20 }}
+
+truncatewords
+
+Coupe une chaîne à un nombre de mots
+
+{{ description|truncatewords:10 }}
+
+default
+
+Valeur par défaut si la variable est vide ou nulle
+
+{{ username|default:"Invité" }}
+
+default_if_none
+
+Valeur par défaut si la variable est None
+
+{{ value|default_if_none:"N/A" }}
+
+2. Filtres sur les listes et QuerySets
+first
+
+Retourne le premier élément
+
+{{ items|first }}
+
+last
+
+Retourne le dernier élément
+
+{{ items|last }}
+
+join
+
+Joint les éléments d’une liste
+
+{{ tags|join:", " }}
+
+slice
+
+Découpe une liste (comme en Python)
+
+{{ items|slice:":3" }}
+
+dictsort
+
+Trie un dictionnaire ou une liste d’objets
+
+{{ users|dictsort:"username" }}
+
+3. Filtres sur les dates et heures
+date
+
+Formate une date
+
+{{ created_at|date:"d/m/Y" }}
+
+time
+
+Affiche uniquement l’heure
+
+{{ created_at|time:"H:i" }}
+
+timesince
+
+Temps écoulé depuis une date
+
+{{ created_at|timesince }} ago
+
+timeuntil
+
+Temps restant jusqu’à une date
+
+{{ event_date|timeuntil }}
+
+4. Filtres logiques et booléens
+yesno
+
+Convertit un booléen en texte
+
+{{ is_active|yesno:"Oui,Non" }}
+
+length_is
+
+Teste la longueur
+
+{{ items|length_is:"3" }}
+
+5. Filtres numériques
+add
+
+Additionne une valeur
+
+{{ total|add:10 }}
+
+floatformat
+
+Formate un nombre flottant
+
+{{ price|floatformat:2 }}
+
+divisibleby
+
+Teste si un nombre est divisible
+
+{% if number|divisibleby:2 %}
+    Pair
+{% endif %}
+
+6. Filtres HTML et sécurité
+safe
+
+Désactive l’échappement HTML
+
+{{ html_content|safe }}
+
+
+⚠️ À utiliser avec prudence (XSS).
+
+escape
+
+Force l’échappement HTML
+
+{{ content|escape }}
+
+striptags
+
+Supprime les balises HTML
+
+{{ content|striptags }}
+
+linebreaks
+
+Convertit les sauts de ligne en <p> et <br>
+
+{{ text|linebreaks }}
+
+linebreaksbr
+
+Convertit les sauts de ligne en <br>
+
+{{ text|linebreaksbr }}
+
+7. Filtres divers utiles
+filesizeformat
+
+Formate une taille de fichier
+
+{{ file.size|filesizeformat }}
+
+pluralize
+
+Gère le pluriel
+
+{{ count }} fichier{{ count|pluralize }}
+
+urlencode
+
+Encode une URL
+
+{{ query|urlencode }}
+
+8. Exemple combiné
+{% for course in courses %}
+    <p>
+        {{ course.name|title }} –
+        {{ course.created_at|date:"d/m/Y" }} –
+        {{ course.description|truncatewords:10 }}
+    </p>
+{% empty %}
+    <p>Aucun cours disponible</p>
+{% endfor %}
+
+9. À retenir (essentiel pour débuter)
+
+Les filtres les plus utilisés en pratique sont :
+
+upper, lower, title
+
+default, truncatewords
+
+date, timesince
+
+safe, striptags
+
+length, pluralize
+
+GUIDE COMPLET – DÉPLOIEMENT DJANGO SUR PYTHONANYWHERE
+1️⃣ Préparation du projet en local (OBLIGATOIRE)
+1.1 Structure correcte du projet
+DocBlog/
+├── Blog/
+├── DocBlog/
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+├── templates/
+├── static/ (optionnel)
+├── .env
+├── manage.py
+├── requirements.txt
+
+1.2 requirements.txt
+pip freeze > requirements.txt
+
+
+PythonAnywhere installe uniquement ce qui est listé ici.
+
+2️⃣ Création du compte PythonAnywhere
+
+Aller sur https://www.pythonanywhere.com
+
+Créer un compte (gratuit ou payant)
+
+Se connecter au Dashboard
+
+3️⃣ Cloner le projet sur le serveur
+3.1 Ouvrir le Bash console
+
+Dashboard → Consoles → Bash
+
+3.2 Cloner le dépôt GitHub
+git clone https://github.com/username/DocBlog.git
+cd DocBlog
+
+
+⚠️ Remarque importante
+GitHub ne demande plus de mot de passe.
+Utiliser un Personal Access Token (PAT) comme mot de passe.
+
+4️⃣ Création et activation du virtualenv
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+
+Vérifier :
+
+python -V
+
+5️⃣ Configuration des variables d’environnement (.env)
+5.1 Fichier .env (à la racine)
+SECRET_KEY=your-secret-key
+DEBUG=False
+ALLOWED_HOSTS=unixdev38.pythonanywhere.com
+
+
+⚠️ Ne jamais versionner .env
+
+6️⃣ Configuration de settings.py
+6.1 BASE_DIR et python-environ
+from pathlib import Path
+import environ
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env()
+env.read_env(BASE_DIR / '.env')
+
+6.2 Sécurité
+SECRET_KEY = env("SECRET_KEY")
+DEBUG = env.bool("DEBUG", default=False)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+
+6.3 Templates
+TEMPLATES_DIR = BASE_DIR / "templates"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [TEMPLATES_DIR],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+7️⃣ Configuration WSGI (CRITIQUE)
+
+Dans Web → Code → WSGI configuration file
+
+import os
+import sys
+
+path = '/home/Unixdev38/DocBlog'
+if path not in sys.path:
+    sys.path.append(path)
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DocBlog.settings')
+
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
+
+8️⃣ Configuration Web (PythonAnywhere)
+8.1 Web App
+
+Web → Add a new web app
+
+Manual configuration
+
+Choisir la version Python (ex: 3.12)
+
+8.2 Virtualenv
+/home/Unixdev38/DocBlog/venv
+
+9️⃣ Base de données (si utilisée)
+python manage.py migrate
+python manage.py createsuperuser
+
+🔟 Fichiers statiques
+10.1 settings.py
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+10.2 Collecte
+python manage.py collectstatic
+
+10.3 Web → Static files
+URL	Directory
+/static/	/home/Unixdev38/DocBlog/staticfiles
+1️⃣1️⃣ Redémarrage (ÉTAPE CLÉ)
+
+⚠️ OBLIGATOIRE après chaque modification
+
+Web → Reload
+
+
+Sans reload, le site ne change pas.
+
+1️⃣2️⃣ Vérifications finales
+
+/ s’affiche correctement
+
+/admin accessible
+
+Logs sans erreurs critiques
+
+DEBUG=False confirmé
+
+REMARQUES IMPORTANTES (À RETENIR)
+
+PythonAnywhere ≠ serveur local
+
+Toute modification → Reload
+
+.env toujours hors Git
+
+Vérifier les logs avant de paniquer
+
+Toujours tester avec HTML simple en cas de page blanche
+
+🎯 CONCLUSION
+
+Tu sais maintenant 
+
+Déployer Django proprement
+
+Comprendre les erreurs serveur
+
+Corriger une config production
+
+Gérer un vrai environnement hébergé
+
+C’est un niveau professionnel.

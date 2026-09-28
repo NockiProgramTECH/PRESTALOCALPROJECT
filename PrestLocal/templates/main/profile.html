@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mon Profil - PrestaLocal{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock extrastyle %}
+
+{% block content %}
+<div class="profile-page">
+
+    <!-- ============ HERO PROFIL ============ -->
+    <section class="profile-hero">
+        <div class="profile-hero__cover"></div>
+        <div class="profile-hero__body">
+            <div class="profile-hero__avatar-wrap">
+                {% if prestataire.photo_profil %}
+                    <img src="{{ prestataire.photo_profil.url }}" alt="Photo de profil" class="profile-hero__avatar">
+                {% else %}
+                    <div class="profile-hero__avatar profile-hero__avatar--fallback">
+                        {{ prestataire.first_name|slice:":1" }}{{ prestataire.last_name|slice:":1" }}
+                    </div>
+                {% endif %}
+                <span class="profile-hero__status-dot {% if prestataire.is_available %}available{% else %}hidden{% endif %}"></span>
+            </div>
+
+            <div class="profile-hero__identity">
+                <h1>{{ prestataire.first_name }} {{ prestataire.last_name }}</h1>
+                <p class="profile-hero__metier">
+                    <i class="fas fa-briefcase"></i> {{ prestataire.metier.nom|default:"Prestataire" }}
+                </p>
+
+                <div class="profile-hero__badges">
+                    {% if prestataire.is_available %}
+                        <span class="profile-badge profile-badge--available"><i class="fas fa-check-circle"></i> Disponible aux recherches</span>
+                    {% else %}
+                        <span class="profile-badge profile-badge--hidden"><i class="fas fa-eye-slash"></i> Masqué des recherches</span>
+                    {% endif %}
+                    {% if prestataire.has_active_subscription %}
+                        <span class="profile-badge profile-badge--sub-active"><i class="fas fa-crown"></i> Abonnement actif</span>
+                    {% else %}
+                        <span class="profile-badge profile-badge--sub-inactive"><i class="fas fa-exclamation-triangle"></i> Sans abonnement</span>
+                    {% endif %}
+                </div>
+
+                <div class="profile-hero__contact">
+                    <span class="profile-contact-chip"><i class="fas fa-envelope"></i> {{ prestataire.email }}</span>
+                    <span class="profile-contact-chip"><i class="fas fa-phone"></i> {{ prestataire.telephone }}</span>
+                    <span class="profile-contact-chip"><i class="fas fa-map-marker-alt"></i> {{ prestataire.ville.nom }}, {{ prestataire.quartier }}</span>
+                </div>
+            </div>
+
+            <div class="profile-hero__actions">
+                <button id="btn-toggle-availability" class="profile-btn profile-btn--primary" data-toggle-url="{% url 'main:toggle_availability' %}">
+                    {% if prestataire.is_available %}
+                        <i class="fas fa-eye-slash"></i> Me masquer
+                    {% else %}
+                        <i class="fas fa-eye"></i> Me rendre visible
+                    {% endif %}
+                </button>
+                <a href="{% url 'main:logout' %}" class="profile-btn profile-btn--danger">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ STATISTIQUES (KPI) ============ -->
+    <section class="profile-stats">
+        <div class="stat-tile">
+            <div class="stat-tile__icon"><i class="fas fa-eye"></i></div>
+            <div class="stat-tile__value">{{ stats.profile_views }}</div>
+            <div class="stat-tile__label">Vues profil</div>
+        </div>
+        <div class="stat-tile">
+            <div class="stat-tile__icon"><i class="fas fa-phone-alt"></i></div>
+            <div class="stat-tile__value">{{ stats.call_clicks }}</div>
+            <div class="stat-tile__label">Clics appel</div>
+        </div>
+        <div class="stat-tile">
+            <div class="stat-tile__icon"><i class="fab fa-whatsapp"></i></div>
+            <div class="stat-tile__value">{{ stats.contact_clicks }}</div>
+            <div class="stat-tile__label">Contacts</div>
+        </div>
+        <div class="stat-tile">
+            <div class="stat-tile__icon"><i class="fas fa-star"></i></div>
+            <div class="stat-tile__value">{{ stats.average_rating|floatformat:1 }}<span style="font-size:.8rem; color:var(--text-light);">/5</span></div>
+            <div class="stat-tile__label">Note moyenne</div>
+        </div>
+        <div class="stat-tile">
+            <div class="stat-tile__icon"><i class="fas fa-comment-dots"></i></div>
+            <div class="stat-tile__value">{{ stats.review_count }}</div>
+            <div class="stat-tile__label">Avis</div>
+        </div>
+    </section>
+
+    <!-- ============ ONGLETS ============ -->
+    <nav class="profile-tabs" role="tablist">
+        <button class="profile-tab active" data-tab="portfolio" role="tab"><i class="fas fa-images"></i> Portfolio</button>
+        <button class="profile-tab" data-tab="subscription" role="tab"><i class="fas fa-crown"></i> Abonnement</button>
+        <button class="profile-tab" data-tab="settings" role="tab"><i class="fas fa-user-cog"></i> Réglages</button>
+    </nav>
+
+    <!-- ============ PANEL PORTFOLIO ============ -->
+    <section class="profile-tabpanel active" id="tab-portfolio" role="tabpanel">
+        <div class="profile-card">
+            <div class="profile-card__header">
+                <h2><i class="fas fa-images" style="color:var(--primary-green); margin-right:8px;"></i>Mon Portfolio</h2>
+                <button class="profile-btn profile-btn--primary" id="btn-add-real">
+                    <i class="fas fa-plus"></i> Ajouter une réalisation
+                </button>
+            </div>
+
+            <div class="portfolio-grid" id="portfolio-grid">
+                {% for real in realisations %}
+                <div class="portfolio-item" id="real-{{ real.id }}">
+                    <img src="{{ real.image.url }}" alt="{{ real.titre }}">
+                    <div class="portfolio-overlay">
+                        <button class="btn-delete-real" data-real-id="{{ real.id }}" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <p id="no-real-msg" class="profile-empty-msg">
+                    <i class="fas fa-images"></i>
+                    Vous n'avez pas encore de réalisations dans votre portfolio.
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ PANEL ABONNEMENT ============ -->
+    <section class="profile-tabpanel" id="tab-subscription" role="tabpanel">
+        <div class="sub-layout">
+            <div class="profile-card sub-main-card {% if prestataire.has_active_subscription %}active{% else %}inactive{% endif %}">
+                <div class="sub-status-row">
+                    <div class="sub-status-bubble {% if prestataire.has_active_subscription %}active{% else %}inactive{% endif %}">
+                        {% if prestataire.has_active_subscription %}
+                            <i class="fas fa-crown"></i>
+                        {% else %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h3 class="sub-status-title">État de l'abonnement</h3>
+                        {% if prestataire.has_active_subscription %}
+                            <p class="sub-status-sub">Votre profil est visible et actif.</p>
+                        {% else %}
+                            <p class="sub-status-sub">Votre profil est masqué pour les clients.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if prestataire.has_active_subscription %}
+                    <div class="sub-detail-row">
+                        <span class="lbl">Statut</span>
+                        <span class="val" style="color:var(--green-text);"><i class="fas fa-check-circle"></i> Actif</span>
+                    </div>
+                    <div class="sub-detail-row">
+                        <span class="lbl">Date d'expiration</span>
+                        <span class="val">{{ prestataire.abonnement.date_fin|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="sub-detail-row">
+                        <span class="lbl">Jours restants</span>
+                        <span class="val">{{ prestataire.abonnement.jours_restants }}</span>
+                    </div>
+                    <a href="{% url 'Abonnement:plan_list' %}" class="sub-cta"><i class="fas fa-arrow-up"></i> Gérer / renouveler mon abonnement</a>
+                {% else %}
+                    <div class="sub-detail-row">
+                        <span class="lbl">Statut</span>
+                        <span class="val" style="color:var(--red-text);"><i class="fas fa-exclamation-triangle"></i> Inactif / Expiré</span>
+                    </div>
+                    <p style="font-size:0.9rem; color:var(--text-medium); margin:14px 0 0; line-height:1.5;">
+                        Activez un abonnement pour réapparaître dans les résultats de recherche et être contacté par les clients.
+                    </p>
+                    <a href="{% url 'Abonnement:plan_list' %}" class="sub-cta sub-cta--amber"><i class="fas fa-rocket"></i> Activer mon abonnement</a>
+                {% endif %}
+            </div>
+
+            <aside class="sub-faq">
+                <h3><i class="fas fa-circle-info" style="color:var(--primary-green); margin-right:6px;"></i>Pourquoi s'abonner ?</h3>
+                <p><i class="fas fa-eye" style="color:var(--green-text); margin-right:6px;"></i>Visibilité maximale auprès des clients qui recherchent vos services.</p>
+                <p><i class="fas fa-chart-line" style="color:var(--green-text); margin-right:6px;"></i>Statistiques détaillées de votre profil (vues, clics, contacts).</p>
+                <p><i class="fas fa-star" style="color:var(--green-text); margin-right:6px;"></i>Renforcez votre crédibilité et votre note.</p>
+                <p><i class="fas fa-comments" style="color:var(--green-text); margin-right:6px;"></i>Accédez à la messagerie et répondez aux demandes.</p>
+                <p><a href="{% url 'Abonnement:plan_list' %}">Voir tous les forfaits →</a></p>
+            </aside>
+        </div>
+    </section>
+
+    <!-- ============ PANEL REGLAGES ============ -->
+    <section class="profile-tabpanel" id="tab-settings" role="tabpanel">
+        <div class="settings-grid">
+
+            <div class="profile-card settings-card">
+                <h3><i class="fas fa-user-edit"></i>Modifier mes informations</h3>
+                <div id="profile-update-message" style="display:none; margin-bottom:16px; padding:12px; border-radius:12px; font-size:0.9rem;"></div>
+                <form id="profile-update-form" action="{% url 'main:update_profile' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in profile_form %}
+                        <div class="form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="profile-field-error">{{ field.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="settings-actions">
+                        <button type="submit" class="profile-btn profile-btn--primary">
+                            <i class="fas fa-save"></i> Enregistrer les modifications
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div>
+                <div class="profile-card settings-card availability-card">
+                    <div style="flex-shrink:0;">
+                        <div class="stat-tile__icon" style="margin:0;"><i class="fas fa-eye"></i></div>
+                    </div>
+                    <div>
+                        <h4>Visibilité dans les recherches</h4>
+                        <p>Contrôlez si votre profil apparaît dans les résultats de recherche des clients.</p>
+                    </div>
+                    <div class="availability-card__toggle">
+                        <label class="switch">
+                            <input type="checkbox" id="availability-switch" {% if prestataire.is_available %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="profile-card settings-card">
+                    <h3><i class="fas fa-shield-halved"></i>Session</h3>
+                    <p style="font-size:0.9rem; color:var(--text-medium); margin:0 0 16px;">
+                        Vous êtes connecté en tant que <strong>{{ prestataire.email }}</strong>.
+                    </p>
+                    <a href="{% url 'main:logout' %}" class="profile-btn profile-btn--danger">
+                        <i class="fas fa-sign-out-alt"></i> Se déconnecter
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ============ MODAL AJOUT REALISATION ============ -->
+    <div class="modal" id="modal-real">
+        <div class="modal-content">
+            <h3>Ajouter une réalisation</h3>
+            <form id="form-add-real" action="{% url 'main:add_realisation' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Titre de la réalisation</label>
+                    {{ form.titre }}
+                </div>
+                <div class="form-group">
+                    <label>Image (Travail effectué)</label>
+                    {{ form.image }}
+                </div>
+                <div id="modal-message" style="display:none; padding:10px; border-radius:8px; margin-bottom:15px; font-size:0.85rem;"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="profile-btn profile-btn--outline" id="btn-close-modal">Annuler</button>
+                    <button type="submit" class="profile-btn profile-btn--primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock content %}
+
+{% block extrajs %}
+<script src="{% static 'js/profile.js' %}"></script>
+{% endblock extrajs %}

@@ -1,0 +1,4 @@
+#otp:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}

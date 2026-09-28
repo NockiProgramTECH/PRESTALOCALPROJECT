@@ -1,0 +1,147 @@
+/* ============================================================
+   INBOX — Liste des conversations (messagerie)
+   Même identité indigo que la page de discussion, distincte du
+   reste du site. Responsive.
+   ============================================================ */
+
+.inbox-page {
+    max-width: 760px;
+    margin: 32px auto;
+    padding: 0 20px;
+}
+
+.inbox-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.inbox-head h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.inbox-head h1 i { color: var(--chat-primary); }
+
+.inbox-list {
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    border: 1px solid #E4E7F4;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 12px 40px -12px rgba(79, 70, 229, 0.12);
+}
+
+.inbox-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    text-decoration: none;
+    position: relative;
+    transition: background 0.18s;
+    min-height: 72px; /* cible tactile confortable */
+}
+.inbox-item + .inbox-item { border-top: 1px solid #EEF0FA; }
+.inbox-item:hover { background: #F5F6FF; }
+
+/* Indicateur de non-lu */
+.inbox-item.unread { background: #F8F8FF; }
+.inbox-item.unread .inbox-name { font-weight: 800; color: #1E1B4B; }
+.inbox-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--chat-primary);
+}
+
+.inbox-avatar,
+.inbox-avatar-initials {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.inbox-avatar { object-fit: cover; background: var(--grey-100); }
+.inbox-avatar-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--chat-primary), var(--chat-secondary));
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+}
+
+.inbox-content { flex: 1; min-width: 0; }
+.inbox-content .inbox-name {
+    font-weight: 700;
+    color: var(--text-dark);
+    font-size: 0.98rem;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.inbox-content .inbox-preview {
+    font-size: 0.85rem;
+    color: var(--text-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.inbox-preview .preview-you { color: var(--text-light); }
+.inbox-preview .preview-empty { color: var(--text-light); font-style: italic; }
+
+.inbox-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.inbox-time {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    white-space: nowrap;
+}
+.inbox-unread {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--chat-primary);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inbox-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+}
+.inbox-empty i {
+    font-size: 3rem;
+    color: var(--chat-secondary);
+    margin-bottom: 16px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+    .inbox-page { margin: 16px 0 0; padding: 0 12px; }
+    .inbox-page h1 { font-size: 1.3rem; }
+    .inbox-list { border-left: none; border-right: none; border-radius: 0; }
+    .inbox-item { min-height: 76px; padding: 12px 14px; }
+}

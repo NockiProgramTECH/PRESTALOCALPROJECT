@@ -1,0 +1,39 @@
+<section class="categories-section" style="padding: 40px 0;">
+    <div class="container">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h2 class="section-title" style="margin: 0; font-size: 1.5rem; font-weight: 800;">Catégories populaires</h2>
+            <a href="{% url 'main:prestataire_list' %}" class="view-all" style="color: var(--primary-green); font-weight: 700;">Voir tout</a>
+        </div>
+
+        <div class="categories-scroll-container" style="overflow-x: auto; padding: 5px 0 20px; margin: 0 -20px; padding-left: 20px; scrollbar-width: none; -ms-overflow-style: none;">
+            <div style="display: flex; gap: 16px; width: max-content;">
+                {% for cat in categorie %}
+                <a href="{% url 'main:prestataire_list' %}?categorie={{ cat.id }}" class="category-pill"
+                   style="display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--white); padding: 24px; border-radius: 16px; min-width: 120px; box-shadow: var(--shadow-sm); border: 1px solid var(--grey-200); text-decoration: none; transition: transform 0.2s;">
+                    <div class="category-icon" style="width: 50px; height: 50px; border-radius: 12px; background: var(--bg-soft-green); display: flex; align-items: center; justify-content: center; color: var(--primary-green); font-size: 1.4rem;">
+                        {% if cat.nom == 'Plomberie' %}
+                            <i class="fas fa-faucet"></i>
+                        {% elif cat.nom == 'Électricité' %}
+                            <i class="fas fa-bolt"></i>
+                        {% elif cat.nom == 'Coiffure & Beauté' %}
+                            <i class="fas fa-cut"></i>
+                        {% elif cat.nom == 'Développement' %}
+                            <i class="fas fa-code"></i>
+                        {% elif cat.nom == 'Réparation' %}
+                            <i class="fas fa-tools"></i>
+                        {% elif cat.nom == 'Maçonnerie' %}
+                            <i class="fas fa-cubes"></i>
+                        {% elif cat.nom == 'Nettoyage' %}
+                            <i class="fas fa-broom"></i>
+                        {% else %}
+                            <i class="fas fa-th-large"></i>
+                        {% endif %}
+                    </div>
+                    <span class="category-name" style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark); white-space: nowrap;">{{ cat.nom }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+

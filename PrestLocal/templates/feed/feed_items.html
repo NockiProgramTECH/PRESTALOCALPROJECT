@@ -1,0 +1,103 @@
+{% for real in realisations %}
+<article class="feed-card">
+
+    <!-- En-tête : avatar + nom + date + badge métier -->
+    <div class="feed-card__header">
+
+        {% if real.prestataire.photo_profil %}
+            <img
+                src="{{ real.prestataire.photo_profil.url }}"
+                alt="Photo de {{ real.prestataire.first_name }}"
+                class="feed-card__avatar">
+        {% else %}
+            <div class="feed-card__avatar--initials" aria-hidden="true">
+                {{ real.prestataire.first_name|slice:":1" }}{{ real.prestataire.last_name|slice:":1" }}
+            </div>
+        {% endif %}
+
+        <div class="feed-card__meta">
+            <a href="{% url 'main:prestataire_detail' real.prestataire.pk %}" class="feed-card__name">
+                {{ real.prestataire.first_name }} {{ real.prestataire.last_name }}
+            </a>
+            <span class="feed-card__date">
+                <i class="far fa-clock" aria-hidden="true"></i>
+                il y a {{ real.date_ajout|timesince }}
+            </span>
+        </div>
+
+        {% if real.prestataire.metier %}
+            <span class="feed-card__badge">{{ real.prestataire.metier.nom }}</span>
+        {% endif %}
+
+    </div>
+
+    <!-- Image de la réalisation -->
+    <div class="feed-card__image-wrapper">
+        <img
+            src="{{ real.image.url }}"
+            alt="{% if real.titre %}{{ real.titre }}{% else %}Réalisation de {{ real.prestataire.first_name }}{% endif %}"
+            class="feed-card__image"
+            loading="lazy">
+    </div>
+
+    <!-- Corps : titre + boutons + commentaires -->
+    <div class="feed-card__body">
+
+        {% if real.titre %}
+            <p class="feed-card__title">{{ real.titre }}</p>
+        {% endif %}
+
+        <!-- Boutons like, commentaire et partage -->
+        <div class="feed-card__actions">
+
+            <button
+                class="like-btn {% if request.user in real.likes.all %}liked{% endif %}"
+                data-id="{{ real.id }}"
+                aria-label="{% if request.user in real.likes.all %}Retirer le like{% else %}Aimer cette réalisation{% endif %}">
+                <i class="{% if request.user in real.likes.all %}fas{% else %}far{% endif %} fa-heart" aria-hidden="true"></i>
+                <span class="like-count">{{ real.likes.count }}</span>
+            </button>
+
+            <div class="feed-card__comment-count">
+                <i class="far fa-comment" aria-hidden="true"></i>
+                <span class="comment-count">{{ real.commentaires.count }}</span>
+            </div>
+
+            <!-- Bouton partage (Web Share API + fallback copie) -->
+            <button
+                class="share-btn"
+                data-url="{{ request.scheme }}://{{ request.get_host }}{% url 'main:prestataire_detail' real.prestataire.pk %}"
+                data-title="{{ real.prestataire.first_name }} {{ real.prestataire.last_name }} — PrestLocal"
+                data-text="{% if real.titre %}{{ real.titre }}{% else %}Découvrez les réalisations de {{ real.prestataire.first_name }} sur PrestLocal !{% endif %}"
+                aria-label="Partager cette réalisation">
+                <i class="far fa-share-square" aria-hidden="true"></i>
+            </button>
+
+        </div>
+
+        <!-- Liste des 3 derniers commentaires -->
+        <div class="feed-card__comments comments-container-{{ real.id }}">
+            {% for comment in real.commentaires.all|slice:":3" %}
+            <div class="feed-comment">
+                <span class="feed-comment__author">{{ comment.user.first_name }}</span>{{ comment.contenu }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Formulaire ajout commentaire -->
+        {% if user.is_authenticated %}
+        <form class="feed-card__comment-form comment-form" data-id="{{ real.id }}">
+            {% csrf_token %}
+            <input
+                type="text"
+                name="contenu"
+                placeholder="Ajouter un commentaire..."
+                class="feed-card__comment-input"
+                autocomplete="off">
+            <button type="submit" class="feed-card__submit">Publier</button>
+        </form>
+        {% endif %}
+
+    </div>
+</article>
+{% endfor %}

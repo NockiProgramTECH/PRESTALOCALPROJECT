@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hors ligne - PrestaLocal{% endblock title %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/offline.css' %}">
+{% endblock extrastyle %}
+
+{% block content %}
+<section class="offline-section">
+    <div class="offline-container">
+        <div class="offline-icon">
+            <i class="fas fa-wifi-slash"></i>
+        </div>
+        <h1>Vous êtes hors ligne</h1>
+        <p class="offline-message">
+            Vérifiez votre connexion internet et réessayez.
+            Les pages que vous avez déjà visitées sont disponibles
+            même sans connexion.
+        </p>
+        <div class="offline-actions">
+            <button onclick="window.location.reload()" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Réessayer
+            </button>
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock content %}

@@ -1,0 +1,17 @@
+    .pagination-new a, .pagination-new span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid #E5E7EB;
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .pagination-new span.active-page {
+        background-color: var(--primary-green);
+        color: var(--white);
+        border-color: var(--primary-green);
+    }

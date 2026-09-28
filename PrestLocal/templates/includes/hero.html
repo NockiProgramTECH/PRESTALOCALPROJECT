@@ -1,0 +1,43 @@
+{% load static %}
+<section class="hero-section">
+    <div class="hero-container">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                Trouvez les meilleurs<br>
+                <span class="highlight">prestataires locaux</span><br>
+                autour de vous
+            </h1>
+            <p class="hero-subtitle">
+                Des professionnels qualifiés, des services de qualité, près de chez vous.
+            </p>
+            
+            <div class="hero-search-bar">
+                <form action="{% url 'main:prestataire_list' %}" method="GET" class="search-form">
+                    <div class="input-group search-input" style="flex:2">
+                        <i class="fas fa-search"></i>
+                        <input type="text" name="q"
+                               placeholder="Ex: Plombier, Coiffeur..."
+                               aria-label="Rechercher un service">
+                    </div>
+                    <div class="input-group location-input">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <input type="text" name="location"
+                               placeholder="Ouagadougou"
+                               aria-label="Localisation">
+                    </div>
+                    <button type="submit" class="btn-search" aria-label="Rechercher">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="hero-illustration">
+            <img src="{% static 'images/hero-illustration.png' %}"
+                 alt="Prestataires en action"
+                 class="illustration-img">
+        </div>
+    </div>
+</section>
+
+<!-- Les styles mobiles sont gérés dans main.css (section MOBILE-FIRST CORRECTIONS) -->

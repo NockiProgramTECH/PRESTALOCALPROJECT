@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - PrestaLocal{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="notif-page">
+    <div class="notif-header">
+        <h1><i class="far fa-bell"></i> Notifications</h1>
+        <button class="btn-mark-read" id="markAllRead" data-url="{% url 'main:mark_all_notifications_read' %}">
+            <i class="fas fa-check-double"></i> Tout marquer comme lu
+        </button>
+    </div>
+
+    <div class="notif-list" id="notifList">
+        {% for notif in notifications %}
+        <a href="{{ notif.link|default:'#' }}" class="notif-item {% if not notif.is_read %}unread{% endif %}" data-id="{{ notif.id }}">
+            <div class="notif-icon {{ notif.notification_type }}">
+                {% if notif.notification_type == 'evaluation' %}<i class="fas fa-star"></i>
+                {% elif notif.notification_type == 'favori' %}<i class="fas fa-heart"></i>
+                {% elif notif.notification_type == 'message' %}<i class="fas fa-comment"></i>
+                {% else %}<i class="fas fa-info-circle"></i>{% endif %}
+            </div>
+            <div class="notif-content">
+                <p>{{ notif.message }}</p>
+                <span class="notif-time">{{ notif.created_at|timesince }}</span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="notif-empty">
+            <i class="far fa-bell-slash"></i>
+            <p>Aucune notification pour le moment.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{% static 'js/notifications.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ prestataire.first_name }} {{ prestataire.last_name }} - {{ prestataire.metier.nom }}{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/prestataire_detail.css' %}">
+{% endblock extrastyle %}
+
+{% block content %}
+<div class="container">
+    <div class="detail-container">
+        <!-- Bannière Supérieure et Boutons Flottants -->
+        <div class="detail-banner-img">
+            <div class="detail-header-nav">
+                <a href="{% url 'main:prestataire_list' %}" class="btn-icon" aria-label="Retour"><i class="fas fa-arrow-left"></i></a>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-icon" aria-label="Partager"><i class="fas fa-share-alt"></i></button>
+                    <button class="btn-icon favorite-btn" data-prestataire-id="{{ prestataire.pk }}" data-url="{% url 'main:toggle_favorite' prestataire.pk %}" aria-label="Ajouter aux favoris">
+                        <i class="{% if is_favori %}fas{% else %}far{% endif %} fa-heart" style="color: {% if is_favori %}var(--danger-red){% endif %};"></i>
+                    </button>
+                </div>
+            </div>
+            
+            {% if prestataire.metier.image_couverture %}
+                <img src="{{ prestataire.metier.image_couverture.url }}" alt="Bannière de {{ prestataire.first_name }}">
+            {% else %}
+                <img src="{% static 'images/hero-illustration.png' %}" alt="Bannière par défaut">
+            {% endif %}
+        </div>
+
+        <!-- Informations Principales du Profil (Carte Chevauchante) -->
+        <div class="profile-main-info">
+            {% if prestataire.photo_profil %}
+                <img src="{{ prestataire.photo_profil.url }}" alt="{{ prestataire.first_name }} {{ prestataire.last_name }}" class="profile-large-img">
+            {% else %}
+                <!-- Avatar Initials Fallback -->
+                <div class="profile-large-img" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-green) 0%, #075985 100%); color: var(--white); font-weight: 800; font-size: 3.2rem; border: 4px solid var(--white); box-shadow: var(--shadow-md);">
+                    {{ prestataire.first_name|slice:":1" }}{{ prestataire.last_name|slice:":1" }}
+                </div>
+            {% endif %}
+
+            <div class="profile-name-row">
+                <h1>{{ prestataire.first_name }} {{ prestataire.last_name }}</h1>
+                {% if prestataire.est_verifie %}
+                    <i class="fas fa-check-circle verified-icon" style="font-size: 1.25rem; color: #0369A1;" title="Profil vérifié"></i>
+                {% endif %}
+            </div>
+
+            {% if not prestataire.is_available %}
+            <div style="margin-bottom: 12px; display: inline-flex; align-items: center; gap: 8px; background: var(--bg-soft-red); color: var(--red-text); padding: 8px 12px; border-radius: 999px; font-size: 0.9rem; font-weight: 700;">
+                <i class="fas fa-user-slash"></i> Prestataire temporairement indisponible
+            </div>
+            {% endif %}
+
+            <p class="profile-job-detail">{{ prestataire.metier.nom|default:"Prestataire Professionnel" }}</p>
+
+            <div class="profile-stats-row">
+                <span class="stars">
+                    <i class="fas fa-star"></i> {{ prestataire.average_rating|floatformat:1 }}
+                </span>
+                <span class="reviews-label">({{ prestataire.review_count }} avis)</span>
+            </div>
+
+            <div class="location-row">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ prestataire.ville.nom }}{% if prestataire.quartier %}, {{ prestataire.quartier }}{% endif %}</span>
+            </div>
+        </div>
+
+        <!-- Boutons de contact rapides -->
+        <div class="profile-actions">
+            <a href="tel:{{ prestataire.telephone }}" class="btn-action btn-call" data-record-url="{% url 'main:record_call_click' prestataire.pk %}" data-phone="{{ prestataire.telephone }}">
+                <i class="fas fa-phone-alt"></i> Appeler
+            </a>
+            <a href="https://wa.me/{{ prestataire.telephone }}" target="_blank" class="btn-action btn-whatsapp" data-record-url="{% url 'main:record_contact_click' prestataire.pk %}">
+                <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>
+            <a href="mailto:{{ prestataire.email }}" class="btn-action btn-email" data-record-url="{% url 'main:record_contact_click' prestataire.pk %}">
+                <i class="far fa-envelope"></i> Email
+            </a>
+            <a href="{% url 'Messagerie:start_conversation' prestataire.pk %}" class="btn-action" style="background: var(--white); color: var(--text-dark); border: 1.5px solid var(--grey-400);">
+                <i class="far fa-comment-alt"></i> Message
+            </a>
+        </div>
+
+        <!-- Section À propos -->
+        <div class="detail-section">
+            <h2>À propos</h2>
+            <div class="about-text">
+                {{ prestataire.bio|default:"Ce prestataire n'a pas encore rédigé sa biographie professionnelle."|linebreaksbr }}
+            </div>
+        </div>
+
+        <!-- Section Services proposés -->
+        <div class="detail-section">
+            <div class="section-head-row">
+                <h2>Services proposés</h2>
+                <a href="#" class="section-link">Voir plus</a>
+            </div>
+            <ul class="services-list">
+                {% if prestataire.metier.description and prestataire.metier.description|length > 30 %}
+                    {% for service in prestataire.metier.description.splitlines %}
+                        {% if service %}
+                        <li class="service-item"><i class="fas fa-check"></i> {{ service }}</li>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <!-- Fallback services réalistes pour un plombier ou autre -->
+                    {% if prestataire.metier.nom == "Plombier Professionnel" or prestataire.metier.nom == "Plombier" %}
+                        <li class="service-item"><i class="fas fa-check"></i> Installation de tuyauterie</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Réparation de fuites</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Débouchage de canalisation</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Installation de chauffe-eau</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Entretien et maintenance</li>
+                    {% elif prestataire.metier.nom == "Électricien" %}
+                        <li class="service-item"><i class="fas fa-check"></i> Installation et câblage</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Dépannage électrique</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Remplacement de tableaux</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Mise aux normes électriques</li>
+                    {% elif prestataire.metier.nom == "Développeur Web" %}
+                        <li class="service-item"><i class="fas fa-check"></i> Développement Frontend (React, HTML/CSS)</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Développement Backend (Django, Node.js)</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Conception de bases de données</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Optimisation SEO et performance</li>
+                    {% else %}
+                        <li class="service-item"><i class="fas fa-check"></i> Services généraux qualifiés</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Assistance rapide d'urgence</li>
+                        <li class="service-item"><i class="fas fa-check"></i> Devis gratuit et personnalisé</li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Section Réalisations -->
+        <div class="detail-section">
+            <div class="section-head-row">
+                <h2>Réalisations</h2>
+                <a href="#" class="section-link">Voir tout</a>
+            </div>
+            <div class="realisations-grid">
+                {% for realisation in prestataire.realisations.all %}
+                    <div class="realisation-item">
+                        <img src="{{ realisation.image.url }}" alt="{{ realisation.titre|default:"Réalisation" }}">
+                    </div>
+                {% empty %}
+                    <!-- Premium Illustration Fallbacks if no portfolio uploads exist -->
+                    <div class="realisation-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--grey-100); color: var(--text-medium); border: 1px dashed var(--grey-400);">
+                        {% if prestataire.metier.nom == "Plombier Professionnel" or prestataire.metier.nom == "Plombier" %}
+                            <i class="fas fa-tools" style="font-size: 2rem; color: var(--primary-green); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Tuyauterie</span>
+                        {% elif prestataire.metier.nom == "Développeur Web" %}
+                            <i class="fas fa-laptop-code" style="font-size: 2rem; color: var(--accent-blue); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Code Source</span>
+                        {% else %}
+                            <i class="fas fa-briefcase" style="font-size: 2rem; color: var(--text-medium); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Chantier</span>
+                        {% endif %}
+                    </div>
+                    <div class="realisation-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--grey-100); color: var(--text-medium); border: 1px dashed var(--grey-400);">
+                        {% if prestataire.metier.nom == "Plombier Professionnel" or prestataire.metier.nom == "Plombier" %}
+                            <i class="fas fa-faucet" style="font-size: 2rem; color: var(--primary-green); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Sanitaires</span>
+                        {% elif prestataire.metier.nom == "Développeur Web" %}
+                            <i class="fas fa-database" style="font-size: 2rem; color: var(--accent-blue); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Base de données</span>
+                        {% else %}
+                            <i class="fas fa-check-double" style="font-size: 2rem; color: var(--text-medium); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Rénovation</span>
+                        {% endif %}
+                    </div>
+                    <div class="realisation-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--grey-100); color: var(--text-medium); border: 1px dashed var(--grey-400);">
+                        {% if prestataire.metier.nom == "Plombier Professionnel" or prestataire.metier.nom == "Plombier" %}
+                            <i class="fas fa-wrench" style="font-size: 2rem; color: var(--primary-green); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Ajustements</span>
+                        {% elif prestataire.metier.nom == "Développeur Web" %}
+                            <i class="fas fa-mobile-alt" style="font-size: 2rem; color: var(--accent-blue); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Responsive UI</span>
+                        {% else %}
+                            <i class="fas fa-clipboard-check" style="font-size: 2rem; color: var(--text-medium); margin-bottom: 8px;"></i>
+                            <span style="font-size: 0.72rem; font-weight: 700;">Finitions</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Section Évaluations et Avis -->
+        <div class="detail-section">
+            <h2>Avis et évaluations</h2>
+
+            <div class="rating-summary">
+                <div class="rating-big-score">
+                    <div class="score-value">{{ prestataire.average_rating|floatformat:1 }}</div>
+                    <div class="score-stars">
+                        {% with ''|center:5 as range %}
+                        {% for _ in range %}
+                            {% if forloop.counter <= prestataire.average_rating %}
+                                <i class="fas fa-star"></i>
+                            {% else %}
+                                <i class="far fa-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                        {% endwith %}
+                    </div>
+                    <div class="score-count">{{ prestataire.review_count }} avis</div>
+                </div>
+
+                <div class="rating-bars">
+                    {% for item in prestataire.rating_breakdown %}
+                    <div class="rating-bar-item">
+                        <span class="bar-label">{{ item.note }}★</span>
+                        <div class="bar-bg">
+                            <div class="bar-fill" style="width: {{ item.percentage }}%;"></div>
+                        </div>
+                        <span style="width: 32px; text-align: left; margin-left: 6px; font-weight: 600;">{{ item.count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Formulaire de notation AJAX -->
+            {% if user.is_authenticated and user != prestataire %}
+            <div class="evaluation-form-container" style="margin-bottom: 30px; padding: 24px; background: var(--bg-light); border-radius: var(--radius-md); border: 1px solid var(--grey-200);">
+                <h3 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 16px; color: var(--text-dark);">Laisser un avis</h3>
+                <form id="evaluation-form" data-url="{% url 'main:submit_evaluation' prestataire.pk %}">
+                    {% csrf_token %}
+                    <div style="margin-bottom: 18px;">
+                        <label for="star5" style="display: block; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem; color: var(--text-medium);">Votre note :</label>
+                        <div class="star-rating-input">
+                            <input type="radio" id="star5" name="note" value="5" required /><label for="star5" title="5 étoiles"><i class="fas fa-star"></i></label>
+                            <input type="radio" id="star4" name="note" value="4" /><label for="star4" title="4 étoiles"><i class="fas fa-star"></i></label>
+                            <input type="radio" id="star3" name="note" value="3" /><label for="star3" title="3 étoiles"><i class="fas fa-star"></i></label>
+                            <input type="radio" id="star2" name="note" value="2" /><label for="star2" title="2 étoiles"><i class="fas fa-star"></i></label>
+                            <input type="radio" id="star1" name="note" value="1" /><label for="star1" title="1 étoile"><i class="fas fa-star"></i></label>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label for="commentaire" style="display: block; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem; color: var(--text-medium);">Votre commentaire :</label>
+                        <textarea id="commentaire" name="commentaire" rows="4" class="form-input" placeholder="Partagez votre expérience avec ce prestataire..."></textarea>
+                    </div>
+                    <div id="evaluation-message" style="margin-bottom: 18px; display: none; padding: 12px; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600;"></div>
+                    <button type="submit" class="btn-action btn-call" style="width: auto; padding: 12px 30px; border-radius: var(--radius-sm);">Envoyer l'avis</button>
+                </form>
+            </div>
+            {% elif not user.is_authenticated %}
+            <div style="margin-bottom: 30px; padding: 16px; background: var(--bg-soft-amber); border-radius: var(--radius-md); color: var(--amber-text); text-align: center; font-size: 0.9rem; font-weight: 600; border: 1px solid var(--grey-400);">
+                <p>Vous devez être <a href="{% url 'main:login' %}" style="text-decoration: underline; font-weight: 800; color: inherit;">connecté</a> pour pouvoir laisser un avis.</p>
+            </div>
+            {% endif %}
+
+            <!-- Liste des commentaires -->
+            <div class="reviews-list">
+                {% for evaluation in prestataire.evaluations.all|dictsortreversed:"date_evaluation"|slice:":5" %}
+                <div class="review-item">
+                    <div class="review-user">
+                        <div class="user-info">
+                            <!-- Initials Avatar client -->
+                            <div class="user-avatar">
+                                {{ evaluation.client_prenom|slice:":1" }}{{ evaluation.client_nom|slice:":1" }}
+                            </div>
+                            <div>
+                                <div class="user-name">{{ evaluation.client_prenom }} {{ evaluation.client_nom|slice:":1" }}.</div>
+                                <div class="score-stars" style="font-size: 0.76rem; margin: 2px 0;">
+                                    {% with ''|center:5 as range %}
+                                    {% for _ in range %}
+                                        {% if forloop.counter <= evaluation.note %}
+                                            <i class="fas fa-star" style="color: var(--primary-yellow);"></i>
+                                        {% else %}
+                                            <i class="far fa-star" style="color: var(--grey-400);"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% endwith %}
+                                    <span style="color: var(--text-light); margin-left: 8px;">il y a {{ evaluation.date_evaluation|timesince }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn-icon" style="background: none; box-shadow: none; color: var(--text-light);" aria-label="Plus d'actions"><i class="fas fa-ellipsis-h"></i></button>
+                    </div>
+                    <div class="review-text">
+                        {{ evaluation.commentaire }}
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-light); text-align: center; padding: 40px 0; font-weight: 500;">Aucun avis n'a été publié pour le moment. Soyez le premier à donner votre avis !</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extrajs %}
+<!-- Script AJAX spécifique pour la notation -->
+<script src="{% static 'js/evaluation.js' %}"></script>
+<script src="{% static 'js/prestataire-detail.js' %}"></script>
+{% endblock extrajs %}

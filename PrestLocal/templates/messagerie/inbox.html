@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages - PrestaLocal{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/inbox.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="inbox-page">
+    <div class="inbox-head">
+        <h1><i class="far fa-comment-alt"></i> Messages</h1>
+    </div>
+
+    <div class="inbox-list">
+        {% for conv in conversations %}
+        <a href="{% url 'Messagerie:conversation_detail' conv.pk %}" class="inbox-item {% if conv.unread > 0 %}unread{% endif %}">
+            {% for p in conv.participants.all %}
+                {% if p.pk != request.user.pk %}
+                    {% if p.photo_profil %}
+                        <img src="{{ p.photo_profil.url }}" alt="Avatar de {{ p.first_name }}" class="inbox-avatar">
+                    {% else %}
+                        <div class="inbox-avatar-initials">{{ p.first_name|slice:":1" }}{{ p.last_name|slice:":1" }}</div>
+                    {% endif %}
+                    <div class="inbox-content">
+                        <div class="inbox-name">{{ p.first_name }} {{ p.last_name }}</div>
+                        <div class="inbox-preview">
+                            {% with last=conv.last_message %}
+                                {% if last %}
+                                    {% if last.sender == request.user %}<span class="preview-you">Vous : </span>{% endif %}
+                                    {{ last.content|truncatechars:60 }}
+                                {% else %}
+                                    <span class="preview-empty">Aucun message</span>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                    <div class="inbox-meta">
+                        <div class="inbox-time">
+                            {% with last=conv.last_message %}
+                                {% if last %}{{ last.created_at|timesince }}{% endif %}
+                            {% endwith %}
+                        </div>
+                        {% if conv.unread > 0 %}
+                            <span class="inbox-unread">{{ conv.unread }}</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </a>
+        {% empty %}
+        <div class="inbox-empty">
+            <i class="far fa-comment-dots"></i>
+            <p>Vous n'avez aucune conversation pour le moment.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

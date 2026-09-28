@@ -1,0 +1,156 @@
+    .client-dashboard {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+    .client-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 30px;
+        background: var(--white);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 30px;
+    }
+    .client-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: var(--grey-100);
+        border: 3px solid var(--bg-light-green);
+    }
+    .client-avatar-initials {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-green), #075985);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.8rem;
+        flex-shrink: 0;
+    }
+    .client-info h1 {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--text-dark);
+        margin-bottom: 4px;
+    }
+    .client-info p {
+        color: var(--text-medium);
+        font-size: 0.9rem;
+    }
+
+    .client-section {
+        margin-bottom: 30px;
+    }
+    .client-section h2 {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--text-dark);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .client-section h2 i {
+        color: var(--primary-green);
+    }
+
+    /* Evaluations */
+    .avis-list {
+        display: grid;
+        gap: 12px;
+    }
+    .avis-card {
+        background: var(--white);
+        border-radius: var(--radius-md);
+        padding: 20px;
+        border: 1px solid var(--grey-200);
+        box-shadow: var(--shadow-sm);
+    }
+    .avis-card .avis-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .avis-card .avis-prestataire {
+        font-weight: 800;
+        color: var(--text-dark);
+        text-decoration: none;
+    }
+    .avis-card .avis-prestataire:hover {
+        color: var(--primary-green);
+    }
+    .avis-card .avis-stars {
+        color: var(--primary-yellow);
+        font-size: 0.9rem;
+    }
+    .avis-card .avis-date {
+        font-size: 0.78rem;
+        color: var(--text-light);
+        margin-bottom: 8px;
+    }
+    .avis-card .avis-comment {
+        font-size: 0.9rem;
+        color: var(--text-medium);
+        line-height: 1.5;
+    }
+
+    /* Favoris */
+    .fav-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+    .fav-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: var(--white);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--grey-200);
+        text-decoration: none;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .fav-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    .fav-card img {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: var(--grey-100);
+    }
+    .fav-card .fav-info { flex: 1; }
+    .fav-card .fav-name {
+        font-weight: 800;
+        color: var(--text-dark);
+        margin-bottom: 2px;
+    }
+    .fav-card .fav-job {
+        font-size: 0.82rem;
+        color: var(--text-medium);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-light);
+        background: var(--white);
+        border-radius: var(--radius-md);
+        border: 1px dashed var(--grey-400);
+    }
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+        opacity: 0.5;
+    }

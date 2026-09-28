@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static %}
+
+    {% block extrastyle %}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+        
+    {% endblock extrastyle %}
+
+{% block content %}
+{% include 'includes/hero.html' %}
+{% include 'includes/categorie.html' %}
+{% include 'includes/prestataire.html' %}
+{% include 'includes/trust_banner.html' %}
+{% include "includes/cta_section.html" %}
+
+<!-- Section Flux Social (Nouvelles Réalisations) -->
+<section class="home-feed-section" style="padding: 80px 0; background-color: var(--bg-light);">
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 50px;">
+            <h2 style="font-size: 2.2rem; font-weight: 800; color: var(--text-dark); margin-bottom: 10px;">Réalisations récentes</h2>
+            <p style="color: var(--text-medium); font-size: 1.1rem;">Découvrez le travail de nos prestataires en temps réel.</p>
+        </div>
+
+        <div style="max-width: 600px; margin: 0 auto;" id="global-feed-container">
+            {% include "feed/feed_items.html" with realisations=feed_items %}
+        </div>
+    </div>
+</section>
+{% endblock content %}
+
+{% block extrajs %}
+<script src="{% static 'js/feed.js' %}"></script>
+{% endblock extrajs %}

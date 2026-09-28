@@ -1,0 +1,34 @@
+<footer style="background: var(--white); border-top: 1px solid var(--grey-200); padding: 60px 20px 100px; margin-top: 60px;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 40px; margin-bottom: 40px;">
+            <div style="flex: 1; min-width: 250px;">
+                <div class="logo" style="margin-bottom: 20px;">
+                    <span class="logo-text" style="font-size: 1.5rem; font-weight: 800;"><span class="brand-presta">PrestA</span> <span class="brand-local">Local</span></span>
+                </div>
+                <p style="color: var(--text-medium); line-height: 1.6; max-width: 300px;">La plateforme numéro 1 pour trouver des prestataires de confiance au Burkina Faso.</p>
+            </div>
+
+            <div style="min-width: 150px;">
+                <h4 style="font-weight: 800; margin-bottom: 20px; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: var(--text-dark);">Navigation</h4>
+                <ul style="list-style: none; padding: 0; display: grid; gap: 12px;">
+                    <li><a href="/" style="color: var(--text-medium); text-decoration: none; font-size: 0.95rem;">Accueil</a></li>
+                    <li><a href="{% url 'main:prestataire_list' %}" style="color: var(--text-medium); text-decoration: none; font-size: 0.95rem;">Trouver un pro</a></li>
+                    <li><a href="#" style="color: var(--text-medium); text-decoration: none; font-size: 0.95rem;">Comment ça marche</a></li>
+                </ul>
+            </div>
+
+            <div style="min-width: 150px;">
+                <h4 style="font-weight: 800; margin-bottom: 20px; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: var(--text-dark);">Suivez-nous</h4>
+                <div style="display: flex; gap: 15px;">
+                    <a href="#" style="width: 40px; height: 40px; border-radius: 50%; background: var(--grey-100); display: flex; align-items: center; justify-content: center; color: var(--text-dark); transition: background 0.3s;"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" style="width: 40px; height: 40px; border-radius: 50%; background: var(--grey-100); display: flex; align-items: center; justify-content: center; color: var(--text-dark); transition: background 0.3s;"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="width: 40px; height: 40px; border-radius: 50%; background: var(--grey-100); display: flex; align-items: center; justify-content: center; color: var(--text-dark); transition: background 0.3s;"><i class="fab fa-whatsapp"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding-top: 30px; border-top: 1px solid var(--grey-200); text-align: center;">
+            <p style="color: var(--text-light); font-size: 0.85rem;">&copy; 2026 PrestA Local. Tous droits réservés.</p>
+        </div>
+    </div>
+</footer>

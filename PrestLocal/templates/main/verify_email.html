@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Vérification de l'email{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <!-- Section Gauche : Formulaire -->
+    <div class="auth-form-container">
+        <div class="auth-form-box">
+            <div class="auth-header">
+                <h2>Vérifiez votre email</h2>
+                <p>Nous avons envoyé un code de vérification à <strong>{{ email }}</strong>. Veuillez le saisir ci-dessous pour activer votre compte.</p>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form method="POST" action="{% url 'main:verify_email' %}" id="verifyForm" novalidate>
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="error-message" style="color: var(--primary-red); font-size: 0.85rem; margin-top: 5px;">
+                                {{ field.errors|striptags }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                <button type="submit" class="btn-auth">Vérifier le compte</button>
+            </form>
+            
+            <div class="auth-footer">
+                <p>Vous n'avez pas reçu l'email ? <a href="{% url 'main:signup' %}">Recommencer l'inscription</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Droite : Image Hero -->
+    <div class="auth-image-container">
+        <img src="/static/images/hero-illustration.png" alt="Illustration PrestaLocal">
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{% static 'js/auth-forms.js' %}"></script>
+{% endblock %}

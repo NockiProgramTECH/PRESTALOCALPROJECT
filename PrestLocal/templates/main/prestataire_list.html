@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tous les prestataires - PrestaLocal{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/prestataire_list.css' %}">
+{% endblock extrastyle %}
+
+{% block content %}
+<!-- Section Hero Recherche -->
+<section class="hero-list-section">
+    <div class="hero-list-content">
+        <div class="hero-text-box">
+            <h1>Tous les prestataires</h1>
+            <p>Trouvez des professionnels qualifiés et de confiance près de chez vous.</p>
+
+            <form action="{% url 'main:prestataire_list' %}" method="GET" class="search-main-container">
+                <div class="search-input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Ex: Plombier, Coiffeur, Développeur..." aria-label="Terme recherché">
+                </div>
+                <div class="location-input-group">
+                    <i class="fas fa-map-marker-alt" style="color: var(--text-light); margin-right: 8px; font-size: 0.95rem;"></i>
+                    <select name="ville" aria-label="Sélectionner la ville">
+                        <option value="">Toutes les villes</option>
+                        {% for v in villes %}
+                            <option value="{{ v.id }}" {% if current_ville == v.id|stringformat:"i" %}selected{% endif %}>{{ v.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- On conserve le paramètre de catégorie s'il y en a un -->
+                {% if current_categorie %}
+                    <input type="hidden" name="categorie" value="{{ current_categorie }}">
+                {% endif %}
+                <button type="submit" class="btn-search-hero" aria-label="Rechercher">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+        <img src="{% static 'images/hero-illustration.png' %}" alt="Illustration Prestataires" class="hero-illustration">
+    </div>
+
+    <!-- Séparateur Vague Esthétique -->
+    <div class="wave-container" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+            <path fill="#F4F9F4" fill-opacity="1" d="M0,160L48,176C96,192,192,224,288,224C384,224,480,192,576,165.3C672,139,768,117,864,128C960,139,1056,181,1152,192C1248,203,1344,181,1392,170.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        </svg>
+    </div>
+</section>
+
+<!-- Barre des Filtres -->
+<section class="filter-bar-section">
+    <div class="filter-bar-container">
+        <form action="{% url 'main:prestataire_list' %}" method="GET" class="filter-items-row" id="filtersForm">
+            <!-- Conserver la recherche textuelle et la ville -->
+            <input type="hidden" name="q" value="{{ search_query }}">
+            <input type="hidden" name="ville" value="{{ current_ville }}">
+            
+            <div class="filter-item">
+                <label for="filter-categorie">Catégories</label>
+                <select id="filter-categorie" name="categorie" class="filter-select-styled">
+                    <option value="">Toutes les catégories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if current_categorie == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label for="filter-specialite">Spécialités</label>
+                <select id="filter-specialite" class="filter-select-styled" disabled>
+                    <option>Toutes les spécialités</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label for="filter-dispo">Disponibilité</label>
+                <select id="filter-dispo" class="filter-select-styled" disabled>
+                    <option>Tous</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label for="filter-tri">Trier par</label>
+                <select id="filter-tri" class="filter-select-styled" disabled>
+                    <option>Populaires</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="results-counter">
+            {{ total_count }} prestataire{{ total_count|pluralize }} trouvé{{ total_count|pluralize }}
+        </div>
+    </div>
+</section>
+
+<!-- Grille des Prestataires -->
+<section class="list-content-section">
+    <div id="prestataires-container">
+        <div class="prestataires-grid-new">
+            {% for prestataire in prestataires %}
+            <div class="card-prestataire-new">
+                <a href="{% url 'main:prestataire_detail' prestataire.pk %}" class="card-top-img" aria-label="Voir le profil de {{ prestataire.first_name }}">
+                    {% if prestataire.photo_profil %}
+                        <img src="{{ prestataire.photo_profil.url }}" alt="{{ prestataire.first_name }} {{ prestataire.last_name }}">
+                    {% else %}
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-green) 0%, #075985 100%); color: var(--white); font-weight: 800; font-size: 3rem; text-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+                            {{ prestataire.first_name|slice:":1" }}{{ prestataire.last_name|slice:":1" }}
+                        </div>
+                    {% endif %}
+                </a>
+                <div class="card-body-new">
+                    <h2 class="card-name-new">
+                        {{ prestataire.first_name }} {{ prestataire.last_name }}
+                        {% if prestataire.est_verifie %}
+                            <i class="fas fa-check-circle verified-icon" style="margin-left: 4px;" title="Profil vérifié"></i>
+                        {% endif %}
+                    </h2>
+                    <p class="card-job-new">{{ prestataire.metier.nom|default:"Professionnel" }}</p>
+                    
+                    <div class="card-rating-new">
+                        <i class="fas fa-star"></i>
+                        <span class="rating-val">{{ prestataire.average_rating|floatformat:1 }}</span>
+                        <span class="review-count">({{ prestataire.review_count }} avis)</span>
+                    </div>
+
+                    <div class="card-loc-new">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ prestataire.ville.nom }}{% if prestataire.quartier %}, {{ prestataire.quartier }}{% endif %}</span>
+                    </div>
+
+                    <div class="card-actions-new">
+                        <a href="{% url 'main:prestataire_detail' prestataire.pk %}" class="btn-profile-new">Voir le profil</a>
+                        <a href="tel:{{ prestataire.telephone }}" class="btn-call-small" title="Appeler" aria-label="Appeler"><i class="fas fa-phone-alt"></i></a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 24px; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                <i class="fas fa-user-slash" style="font-size: 3rem; color: var(--text-light); margin-bottom: 16px;"></i>
+                <p style="color: var(--text-medium); font-weight: 600;">Aucun prestataire ne correspond à vos critères de recherche.</p>
+                <a href="{% url 'main:prestataire_list' %}" style="display: inline-block; margin-top: 15px; color: var(--primary-green); font-weight: 700; text-decoration: underline;">Réinitialiser les filtres</a>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+        <div class="pagination-new" style="display: flex; justify-content: center; gap: 8px; margin-top: 50px;">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&ville={{ current_ville }}&categorie={{ current_categorie }}" class="ajax-page-link" aria-label="Page précédente"><i class="fas fa-chevron-left"></i></a>
+            {% endif %}
+
+            {% for num in paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="active-page">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}&q={{ search_query }}&ville={{ current_ville }}&categorie={{ current_categorie }}" class="ajax-page-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&ville={{ current_ville }}&categorie={{ current_categorie }}" class="ajax-page-link" aria-label="Page suivante"><i class="fas fa-chevron-right"></i></a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Template Squelette (caché) -->
+    <template id="skeleton-template">
+        <div class="prestataires-grid-new">
+            {% for i in "12345678" %}
+            <div class="skeleton-card">
+                <div class="skeleton-img skeleton"></div>
+                <div class="skeleton-title skeleton"></div>
+                <div class="skeleton-subtitle skeleton"></div>
+                <div class="skeleton-text skeleton"></div>
+                <div class="skeleton-btn skeleton"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </template>
+</section>
+
+<!-- Bannière Valeurs & Confiance -->
+<section style="background: var(--white); padding: 48px 0; border-top: 1px solid var(--grey-200);">
+    <div class="container" style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 32px;">
+        <div style="display: flex; align-items: center; gap: 16px; min-width: 250px;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--primary-green); display: flex; align-items: center; justify-content: center; color: var(--primary-green); font-size: 1.1rem; flex-shrink: 0; background-color: var(--bg-soft-green);">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-dark);">Prestataires vérifiés</div>
+                <div style="font-size: 0.82rem; color: var(--text-medium); margin-top: 2px;">Des professionnels de confiance</div>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; min-width: 250px;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--primary-green); display: flex; align-items: center; justify-content: center; color: var(--primary-green); font-size: 1.1rem; flex-shrink: 0; background-color: var(--bg-soft-green);">
+                <i class="fas fa-star"></i>
+            </div>
+            <div>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-dark);">Évaluations authentiques</div>
+                <div style="font-size: 0.82rem; color: var(--text-medium); margin-top: 2px;">Avis 100% vérifiés et réels</div>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; min-width: 250px;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--primary-green); display: flex; align-items: center; justify-content: center; color: var(--primary-green); font-size: 1.1rem; flex-shrink: 0; background-color: var(--bg-soft-green);">
+                <i class="fas fa-handshake"></i>
+            </div>
+            <div>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-dark);">Mise en relation facile</div>
+                <div style="font-size: 0.82rem; color: var(--text-medium); margin-top: 2px;">Contactez en un simple clic</div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock content %}
+
+{% block extrajs %}
+<script src="{% static 'js/prestataire-list.js' %}"></script>
+{% endblock extrajs %}

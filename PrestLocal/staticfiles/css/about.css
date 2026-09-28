@@ -1,0 +1,293 @@
+/* =============================================
+   PAGE "À PROPOS" — PrestaLocal
+   ============================================= */
+
+/* --- Hero About --- */
+.about-hero {
+    background: linear-gradient(135deg, var(--primary-green) 0%, #075985 100%);
+    padding: 80px 24px;
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+.about-hero::before {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+    top: -200px;
+    right: -150px;
+}
+.about-hero::after {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 50%;
+    bottom: -80px;
+    left: -80px;
+}
+.about-hero-content {
+    max-width: 720px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+}
+.about-hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+    line-height: 1.15;
+}
+.about-hero h1 span {
+    color: var(--primary-yellow);
+}
+.about-hero p {
+    font-size: 1.1rem;
+    opacity: 0.92;
+    line-height: 1.7;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* --- Mission Section --- */
+.about-mission {
+    padding: 80px 24px;
+    background: var(--white);
+}
+.about-mission-grid {
+    max-width: 900px;
+    margin: 0 auto;
+}
+.about-mission-text h2 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--text-dark);
+    margin-bottom: 20px;
+    line-height: 1.2;
+}
+.about-mission-text h2 span {
+    color: var(--primary-green);
+}
+.about-mission-text p {
+    color: var(--text-medium);
+    line-height: 1.8;
+    font-size: 1rem;
+    margin-bottom: 16px;
+}
+/* --- Stats Section --- */
+.about-stats {
+    padding: 70px 24px;
+    background: var(--bg-light);
+}
+.about-stats-grid {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+.stat-card {
+    text-align: center;
+    padding: 32px 16px;
+    background: var(--white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+.stat-card .stat-icon {
+    font-size: 2rem;
+    color: var(--primary-green);
+    margin-bottom: 12px;
+}
+.stat-card .stat-number {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--text-dark);
+    line-height: 1.1;
+    margin-bottom: 4px;
+}
+.stat-card .stat-label {
+    font-size: 0.88rem;
+    color: var(--text-medium);
+    font-weight: 500;
+}
+
+/* --- Values Section --- */
+.about-values {
+    padding: 80px 24px;
+    background: var(--white);
+}
+.about-values-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+.about-values-header h2 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 900;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+}
+.about-values-header p {
+    color: var(--text-medium);
+    font-size: 1.05rem;
+    max-width: 550px;
+    margin: 0 auto;
+}
+.values-grid {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+.value-card {
+    padding: 32px;
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--grey-200);
+    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+.value-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-green);
+}
+.value-card .value-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--bg-soft-green);
+    color: var(--primary-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 18px;
+}
+.value-card h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+.value-card p {
+    font-size: 0.92rem;
+    color: var(--text-medium);
+    line-height: 1.6;
+}
+
+/* --- CTA Section --- */
+.about-cta {
+    padding: 80px 24px;
+    background: var(--bg-light);
+    text-align: center;
+}
+.about-cta-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+.about-cta-content h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 900;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+}
+.about-cta-content p {
+    color: var(--text-medium);
+    font-size: 1.05rem;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+.about-cta-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.about-cta-buttons .btn-about-primary {
+    padding: 14px 34px;
+    background: var(--primary-green);
+    color: white;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: background 0.25s, transform 0.2s;
+    box-shadow: 0 4px 10px rgba(27,94,32,0.2);
+}
+.about-cta-buttons .btn-about-primary:hover {
+    background: #075985;
+    transform: translateY(-2px);
+}
+.about-cta-buttons .btn-about-secondary {
+    padding: 14px 34px;
+    background: transparent;
+    color: var(--primary-green);
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--primary-green);
+    text-decoration: none;
+    transition: background 0.25s, color 0.25s, transform 0.2s;
+}
+.about-cta-buttons .btn-about-secondary:hover {
+    background: var(--primary-green);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .about-hero {
+        padding: 60px 20px;
+    }
+    .about-mission {
+        padding: 50px 20px;
+    }
+    .about-mission-grid {
+        max-width: 100%;
+    }
+    .about-stats {
+        padding: 50px 20px;
+    }
+    .about-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    .stat-card .stat-number {
+        font-size: 1.8rem;
+    }
+    .about-values {
+        padding: 50px 20px;
+    }
+    .values-grid {
+        grid-template-columns: 1fr;
+    }
+    .about-cta {
+        padding: 50px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .about-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .stat-card {
+        padding: 24px 12px;
+    }
+    .value-card {
+        padding: 24px;
+    }
+}

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mon espace client - PrestaLocal{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/client_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="client-dashboard">
+    <!-- Header -->
+    <div class="client-header">
+        {% if user.photo_profil %}
+            <img src="{{ user.photo_profil.url }}" alt="" class="client-avatar">
+        {% else %}
+            <div class="client-avatar-initials">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
+        {% endif %}
+        <div class="client-info">
+            <h1>{{ user.first_name }} {{ user.last_name }}</h1>
+            <p><i class="fas fa-user"></i> Client • {{ user.email }}</p>
+        </div>
+    </div>
+
+    <!-- Mes avis -->
+    <div class="client-section">
+        <h2><i class="fas fa-star"></i> Mes avis</h2>
+        {% if avis_donnes %}
+        <div class="avis-list">
+            {% for avis in avis_donnes %}
+            <div class="avis-card">
+                <div class="avis-header">
+                    <a href="{% url 'main:prestataire_detail' avis.prestataire.pk %}" class="avis-prestataire">
+                        {{ avis.prestataire.first_name }} {{ avis.prestataire.last_name }}
+                    </a>
+                    <div class="avis-stars">
+                        {% for i in "12345" %}
+                            <i class="{% if forloop.counter <= avis.note %}fas{% else %}far{% endif %} fa-star"></i>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="avis-date">{{ avis.date_evaluation|date:"d/m/Y" }}</div>
+                <div class="avis-comment">{{ avis.commentaire }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="far fa-star"></i>
+            <p>Vous n'avez pas encore laissé d'avis.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Mes favoris -->
+    <div class="client-section">
+        <h2><i class="fas fa-heart" style="color: var(--danger-red);"></i> Mes favoris</h2>
+        {% if favoris %}
+        <div class="fav-grid">
+            {% for fav in favoris %}
+            <a href="{% url 'main:prestataire_detail' fav.prestataire.pk %}" class="fav-card">
+                {% if fav.prestataire.photo_profil %}
+                    <img src="{{ fav.prestataire.photo_profil.url }}" alt="">
+                {% else %}
+                    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary-green),#075985);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;flex-shrink:0;">
+                        {{ fav.prestataire.first_name|slice:":1" }}{{ fav.prestataire.last_name|slice:":1" }}
+                    </div>
+                {% endif %}
+                <div class="fav-info">
+                    <div class="fav-name">{{ fav.prestataire.first_name }} {{ fav.prestataire.last_name }}</div>
+                    <div class="fav-job">{{ fav.prestataire.metier.nom|default:"Prestataire" }}</div>
+                </div>
+                <i class="fas fa-chevron-right" style="color: var(--text-light);"></i>
+            </a>
+            {% empty %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="far fa-heart"></i>
+            <p>Vous n'avez pas encore de prestataires favoris.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
