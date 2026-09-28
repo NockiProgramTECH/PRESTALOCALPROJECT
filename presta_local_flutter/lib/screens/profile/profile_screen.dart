@@ -17,6 +17,7 @@ import '../auth/password_reset_screen.dart';
 import '../favorites/favorites_screen.dart';
 import '../feed/feed_create_screen.dart';
 import '../messages/chat_screen.dart';
+import '../auth/login_screen.dart';
 import 'profile_edit_screen.dart';
 
 /// Écran de profil (double usage, maquettes « profil_prestataire_devis »
@@ -131,6 +132,12 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
   }
 
   ProviderModel get provider => widget.provider;
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   void _scrollToQuote() {
     _scroll.animateTo(
@@ -1458,6 +1465,12 @@ class _UserDashboard extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final isLoggedIn = authState.status == AuthStatus.authenticated;
 
+    void _snack(String message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+
     if (!isLoggedIn) {
       return SafeArea(
         child: Center(
@@ -1521,7 +1534,7 @@ class _UserDashboard extends ConsumerWidget {
             title: 'PrestLocal',
             subtitle: 'Profil',
             onNotificationsTap: () =>
-                _snack(context, 'Notifications — Bientôt disponible'),
+                _snack('Notifications — Bientôt disponible'),
             userName: authState.userName,
             userPhoto: authState.userPhoto,
           ),
@@ -1553,7 +1566,7 @@ class _UserDashboard extends ConsumerWidget {
               iconColor: const Color(0xFF1D4ED8),
               title: 'Historique des interventions',
               subtitle: 'Factures & garanties SAV',
-              onTap: () => _snack(context, 'Historique — Bientôt disponible'),
+              onTap: () => _snack('Historique — Bientôt disponible'),
             ),
             _menuItem(
               icon: Icons.favorite_border_rounded,
@@ -1581,7 +1594,7 @@ class _UserDashboard extends ConsumerWidget {
               iconColor: AppTheme.navy,
               title: 'Moyens de paiement',
               subtitle: 'Orange Money, Moov, Espèces',
-              onTap: () => _snack(context, 'Paiements — Bientôt disponible'),
+              onTap: () => _snack('Paiements — Bientôt disponible'),
             ),
             _menuItem(
               icon: Icons.badge_outlined,
@@ -1590,7 +1603,7 @@ class _UserDashboard extends ConsumerWidget {
               title: "Vérification d'identité",
               subtitle: 'Pièce CNIB enregistrée',
               trailing: const VerifiedPill(label: 'Vérifié ✓'),
-              onTap: () => _snack(context, 'Vérification — Bientôt disponible'),
+              onTap: () => _snack('Vérification — Bientôt disponible'),
             ),
             _menuItem(
               icon: Icons.lock_outline,
@@ -1611,7 +1624,7 @@ class _UserDashboard extends ConsumerWidget {
               title: 'Notifications',
               subtitle: 'SMS, WhatsApp & Push',
               onTap: () =>
-                  _snack(context, 'Notifications — Bientôt disponible'),
+                  _snack('Notifications — Bientôt disponible'),
             ),
             _menuItem(
               icon: Icons.support_agent_rounded,
@@ -1620,7 +1633,7 @@ class _UserDashboard extends ConsumerWidget {
               title: "Centre d'aide & Assistance locale",
               subtitle: 'Équipe dédiée à Ouagadougou',
               onTap: () =>
-                  _snack(context, "Centre d'aide — Bientôt disponible"),
+                  _snack("Centre d'aide — Bientôt disponible"),
             ),
             _menuItem(
               icon: Icons.translate_rounded,
@@ -1632,7 +1645,7 @@ class _UserDashboard extends ConsumerWidget {
                 'Français',
                 style: TextStyle(fontSize: 12, color: AppTheme.muted),
               ),
-              onTap: () => _snack(context, 'Langues — Bientôt disponible'),
+              onTap: () => _snack('Langues — Bientôt disponible'),
             ),
           ]),
           Padding(
@@ -1721,7 +1734,7 @@ class _UserDashboard extends ConsumerWidget {
             child: GestureDetector(
               onTap: () => Navigator.of(
                 context,
-              ).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
+              ).push(MaterialPageRoute(builder: (_) => RegisterScreen())),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1972,7 +1985,7 @@ class _UserDashboard extends ConsumerWidget {
           GestureDetector(
             onTap: () => Navigator.of(
               context,
-            ).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
+            ).push(MaterialPageRoute(builder: (_) => RegisterScreen())),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
               decoration: BoxDecoration(
@@ -2092,11 +2105,6 @@ class _UserDashboard extends ConsumerWidget {
     );
   }
 
-  void _snack(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
 }
 
 /// ============================================================================
