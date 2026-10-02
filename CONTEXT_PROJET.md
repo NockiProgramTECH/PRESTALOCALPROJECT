@@ -28,10 +28,26 @@ PRESTALOCALPROJECT/                  # dépôt (nom de dossier historique conser
 ├── PrestLocal/                     # Backend Django — produit « LesProduFao »
 │   ├── Core/                      # Config Django (settings, urls, asgi, wsgi, middleware)
 │   ├── main/                      # App principale : modèles User, Ville, Prestation, Realisation, Evaluation, Favorite, Notification
+│   │   ├── querysets.py           #   queryset partagé (visibilité, relations, notes annotées)
+│   │   ├── selectors.py           #   requêtes de lecture des pages
+│   │   ├── services/              #   comptes.py, avis.py, favoris.py, prestataires.py
+│   │   └── views/                 #   pages.py, comptes.py, prestataires.py, portfolio.py, notifications.py
 │   ├── Abonnement/                # App abonnement : PlanAbonnement, Abonnement
+│   │   └── services.py            #   souscrire(), abonnement_actif(), assurer_plans_par_defaut()
 │   ├── Feed/                      # App fil d'actualité : Like, Commentaire sur les réalisations
+│   │   ├── selectors.py           #   publications préchargées / annotées (site + API)
+│   │   └── services.py            #   basculer_like(), ajouter_commentaire()
+│   ├── Notifications/             # Envoi multi-canal (email, WhatsApp, push) + relances d'abonnement
+│   │   ├── channels/ registre.py  #   canaux interchangeables (ajouter un canal = 1 classe + 1 ligne)
+│   │   ├── service.py             #   façade d'envoi (journalisation, idempotence)
+│   │   ├── abonnement.py          #   cibles_relance(), relancer(), url_abonnement()
+│   │   └── tasks.py               #   worker executer_relances_abonnement() + commande cron
 │   ├── Messagerie/                # App messagerie temps réel : Conversation, Message, WebSocket consumers
-│   ├── api/                       # API REST : serializers, views, urls, permissions
+│   ├── api/                       # API REST
+│   │   ├── serializers/           #   commun, reference, prestataires, feed, comptes, abonnement
+│   │   ├── views/                 #   prestataires, comptes, reference, feed, abonnement
+│   │   └── selectors.py           #   querysets prêts pour l'API
+│   ├── docs/                      # architecture.md, notifications.md
 │   ├── templates/                 # Templates HTML Django (PWA)
 │   ├── static/                    # Fichiers statiques (CSS, JS)
 │   ├── media/                     # Uploads utilisateurs

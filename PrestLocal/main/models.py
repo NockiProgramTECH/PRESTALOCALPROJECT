@@ -2,8 +2,11 @@ import uuid
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
+
+from .querysets import PrestataireQuerySet
 
 class CustomUserManager(BaseUserManager):
     """
@@ -114,7 +117,7 @@ class Prestataire(AbstractUser):
     code_verification = models.CharField(max_length=6, null=True, blank=True, verbose_name=_("Code de vérification"))
     date_inscription = models.DateTimeField(auto_now_add=True, verbose_name=_("Date d'inscription"))
 
-    objects = CustomUserManager()
+    objects = CustomUserManager.from_queryset(PrestataireQuerySet)()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -149,9 +152,11 @@ class Prestataire(AbstractUser):
         if self.role == 'client':
             return True
         try:
-            return self.abonnement.est_valide
-        except Exception:
+            abonnement = self.abonnement
+        except ObjectDoesNotExist:
+            # Aucun abonnement rattaché : le prestataire n'est pas visible.
             return False
+        return abonnement.est_valide
 
     @property
     def profile_completed(self):
@@ -172,6 +177,16 @@ class Prestataire(AbstractUser):
 
     @property
     def average_rating(self):
+        """Note moyenne des avis.
+
+        Utilise l'annotation `average_note` quand le queryset l'a fournie
+        (`Prestataire.objects.avec_note_et_avis()`), sinon interroge les avis —
+        dans ce cas, précharger `evaluations` pour éviter une requête par fiche.
+        """
+        # Présence dans `__dict__` = annotation fournie par le queryset (la
+        # valeur peut être `None` pour un prestataire sans avis).
+        if 'average_note' in self.__dict__:
+            return self.__dict__['average_note'] or 0
         evaluations = self.evaluations.all()
         if not evaluations:
             return 0
@@ -179,6 +194,9 @@ class Prestataire(AbstractUser):
 
     @property
     def review_count(self):
+        """Nombre d'avis (annotation `nombre_avis` si disponible)."""
+        if 'nombre_avis' in self.__dict__:
+            return self.__dict__['nombre_avis']
         return self.evaluations.count()
 
     @property

@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from main.models import Realisation
+from .selectors import publications_avec_relations
 from .services import (
     CommentaireVide,
     ajouter_commentaire,
@@ -77,7 +78,7 @@ def feed_list(request):
     Réponse HTML (premier chargement via include Django) :
       Renvoie le template feed/feed_items.html directement.
     """
-    qs   = Realisation.objects.select_related('prestataire', 'prestataire__metier').order_by('-date_ajout')
+    qs   = publications_avec_relations()
     page_num = request.GET.get('page', 1)
 
     paginator = Paginator(qs, FEED_PAGE_SIZE)

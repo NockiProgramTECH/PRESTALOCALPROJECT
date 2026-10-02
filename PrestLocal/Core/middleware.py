@@ -30,12 +30,22 @@ class JWTAuthMiddleware:
 
     @database_sync_to_async
     def _get_user(self, token):
+        """Utilisateur du jeton, ou `None` si le jeton est invalide/expiré.
+
+        En WebSocket, un jeton refusé signifie « visiteur anonyme » : on ne
+        laisse pas remonter l'erreur, mais on ne masque pas non plus une panne
+        inattendue (seules les erreurs de jeton sont interceptées).
+        """
         from django.contrib.auth import get_user_model
+        from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
         from rest_framework_simplejwt.tokens import AccessToken
 
         User = get_user_model()
         try:
             access = AccessToken(token)
+        except (InvalidToken, TokenError):
+            return None
+        try:
             return User.objects.get(pk=access['user_id'])
-        except Exception:
+        except (User.DoesNotExist, KeyError):
             return None

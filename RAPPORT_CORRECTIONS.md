@@ -766,10 +766,9 @@ reformater avec `dart format`.
 
 ### 12.8 Reste à traiter (non fait volontairement)
 
-- **Découpage des gros modules** (`api/serializers.py`, `api/views.py`,
-  `main/views.py` → packages) : refactoring mécanique à faire module par
-  module, sans bénéfice fonctionnel immédiat ; prioriser lors du prochain lot
-  touchant ces fichiers.
+- ~~**Découpage des gros modules** (`api/serializers.py`, `api/views.py`,
+  `main/views.py` → packages)~~ : **fait**, voir le §13 (mêmes routes, mêmes
+  contrats d'import).
 - **Application mobile** : les canaux push/WhatsApp ne concernent que le
   backend ; l'enregistrement des jetons d'appareil (FCM) reste à faire, ainsi
   que son côté Flutter (`firebase_messaging`).
@@ -778,3 +777,139 @@ reformater avec `dart format`.
   seul l'appelant du worker change.
 - **Refactoring Flutter** (`profile_screen.dart` 2551 lignes,
   `login_screen.dart` 1617 lignes) : à découper par fonctionnalité.
+
+---
+
+## 13. Refactoring en couches : audits, services et découpage des gros modules
+
+Deuxième passe d'architecture (Clean Code / SOLID), appliquée **sans casser
+l'existant** : aucune route, aucun contrat d'API, aucune migration modifiés.
+
+### 13.1 Audit — problèmes détectés
+
+| # | Problème | Preuve / portée |
+|---|---|---|
+| 1 | `api/serializers.py` : **1141 lignes**, six domaines mélangés (comptes, prestataires, fil, référence, abonnement) | `wc -l` avant refactoring |
+| 2 | `api/views.py` : **796 lignes**, même mélange côté vues | idem |
+| 3 | `main/views.py` : **604 lignes**, cinq domaines (pages, comptes, profil, portfolio, notifications) | idem |
+| 4 | Requête des prestataires visibles **écrite 3 fois** (annuaire web, accueil, API liste/détail) — dont une version **en Python** (`[p for p in qs if p.has_active_subscription]`) qui chargeait toute la table | `main/views.py::index`, `PrestataireListView`, `api/views.py::get_queryset` |
+| 5 | Queryset annoté du fil **dupliqué** entre la liste et le détail de l'API | `api/views.py` (2 blocs identiques de ~25 lignes) |
+| 6 | Règles métier dans les vues : création du code + email d'inscription, activation, réinitialisation, dépôt d'avis | `main/views.py` |
+| 7 | Compteurs d'audience (appel/contact) : même arithmétique `F()+1` + `refresh_from_db` recopiée | `main/views.py` (2 vues) |
+| 8 | **Fuite d'information** : `except Exception as e: message=str(e)` renvoyait le détail technique au navigateur ; `print()` au lieu du logger en cas d'échec d'email | `main/views.py::submit_evaluation`, `signup_view` |
+| 9 | N+1 : `average_rating` et `review_count` interrogeaient la base **par carte** (aucune annotation) ; le fil n'était pas préchargé (1 requête de likes par publication) | gabarits `includes/prestataire*.html`, `feed/feed_items.html` |
+| 10 | `except Exception` masquant des erreurs réelles : `has_active_subscription` (modèle), authentification WebSocket | `main/models.py`, `Core/middleware.py` |
+| 11 | Fenêtre d'incohérence à l'inscription : compte créé puis `delete()` si l'email échouait (non transactionnel) | `main/views.py::signup_view` |
+
+### 13.2 Plan appliqué (priorisé)
+
+1. **Requêtes partagées** : `PrestataireQuerySet` (`prestataires()`, `visibles()`,
+   `avec_relations()`, `avec_note_moyenne()`, `avec_note_et_avis()`) et
+   `Feed/selectors.py` — élimine les problèmes 4, 5 et 9.
+2. **Services du domaine `main`** : `comptes.py`, `avis.py`, `favoris.py`,
+   `prestataires.py` — élimine 6, 7, 11.
+3. **Découpage `main/views.py` → `main/views/`** (pages, comptes, prestataires,
+   portfolio, notifications) — élimine 3.
+4. **Découpage `api/serializers.py` → paquet par domaine** (commun, reference,
+   prestataires, feed, comptes, abonnement) — élimine 1.
+5. **Découpage `api/views.py` → paquet par domaine** + `api/selectors.py` —
+   élimine 2 et réutilise les requêtes du point 1.
+6. **Erreurs et journalisation** : exceptions métier traduites en 400/403/404,
+   plus de `str(e)` dans les réponses, `logger` au lieu de `print`, `except`
+   ciblés — élimine 8 et 10.
+7. **Tests** : services/selectors sans HTTP, codes de réponse des endpoints
+   AJAX, garde-fou anti-N+1 — couvre l'ensemble.
+
+### 13.3 Fichiers créés
+
+- `main/querysets.py`, `main/selectors.py`
+- `main/services/{__init__,comptes,avis,favoris,prestataires}.py`
+- `main/views/{__init__,pages,comptes,prestataires,portfolio,notifications}.py`
+- `api/selectors.py`
+- `api/serializers/{__init__,commun,reference,prestataires,feed,comptes,abonnement}.py`
+- `api/views/{__init__,prestataires,comptes,reference,feed,abonnement}.py`
+- `Feed/selectors.py`
+- `main/test_services.py` (26 tests)
+- `PrestLocal/docs/architecture.md` (guide « où écrire quoi »)
+
+### 13.4 Fichiers supprimés / remplacés
+
+- `main/views.py` → paquet `main/views/` (l'ancien fichier est supprimé).
+- `api/serializers.py` → paquet `api/serializers/`.
+- `api/views.py` → paquet `api/views/`.
+
+Les paquets réexportent **tous** les noms publics dans leur `__init__.py` :
+`from api.serializers import RegisterSerializer`, `from .views import
+PrestataireViews` et `main/urls.py` continuent de fonctionner sans modification.
+
+### 13.5 Fichiers modifiés
+
+`main/models.py` (manager basé sur le queryset, annotation utilisée par les
+propriétés de note, `except` ciblé), `Feed/views.py` (queryset délégué au
+selector), `Core/middleware.py` (erreurs de jeton ciblées), `main/forms.py`
+(import inutilisé), `CONTEXT_PROJET.md` (arborescence), `RAPPORT_CORRECTIONS.md`.
+
+### 13.6 Responsabilités déplacées
+
+| Avant | Après |
+|---|---|
+| Filtre « abonnement actif » recopié dans 3 vues, dont une boucle Python | `PrestataireQuerySet.visibles()` (une requête SQL) |
+| Annotation et préchargements des prestataires dans la vue API | `api/selectors.prestataires_api()` + `main.querysets` |
+| Queryset annoté du fil écrit deux fois dans l'API | `Feed.selectors.publications_annotees()` (site **et** API) |
+| Création du code, activation, réinitialisation dans les vues | `main.services.comptes` (transactionnel pour l'inscription) |
+| Validation et écriture de l'avis dans la vue web **et** dans l'API | `main.services.avis.soumettre_avis` (+ `notifier_nouvel_avis`) |
+| Statistiques d'avis (`Avg`/`Count`) dans la vue API | `main.services.avis.statistiques_avis` |
+| Toggle des favoris écrit deux fois | `main.services.favoris.basculer_favori` |
+| Incréments `F()+1` recopiés | `main.services.prestataires.enregistrer_clic` |
+| `str(e)` renvoyé au client | Exceptions métier → 400/404, journalisation côté serveur |
+
+### 13.7 Améliorations de testabilité
+
+- Les services ne reçoivent ni `request` ni `HttpResponse` : testables par
+  appel direct (26 nouveaux tests dans `main/test_services.py`).
+- Les envois d'emails passent par `Notifications.service` : `mail.outbox`
+  suffit, aucun accès SMTP.
+- L'atomicité de l'inscription est **testée** : canal indisponible
+  (`NOTIFICATIONS_CHANNELS=['push']`) → `EnvoiCodeImpossible` et aucun compte
+  en base.
+- Le garde-fou anti-N+1 compare le nombre de requêtes pour 2 puis 6 cartes :
+  il échoue si une requête par carte réapparaît.
+- Les codes HTTP des endpoints AJAX (403 anonyme, 404 inconnu, 400 champs
+  manquants, 400 note hors bornes, 400 second avis) sont verrouillés par des
+  tests.
+
+### 13.8 Vérifications réellement exécutées
+
+| Commande / test | Résultat |
+|---|---|
+| `python manage.py check` | aucun problème |
+| `python manage.py test` (avant refactoring) | 97 tests OK |
+| `python manage.py test` (après chaque étape) | 97 → 118 → **128 tests OK** |
+| `python -m pyflakes` sur les paquets refactorisés | aucun avertissement |
+| `manage.py test main.test_services` | 26 tests OK (services, selectors, codes HTTP, anti-N+1) |
+| `manage.py test Feed` | 9 tests OK (dont 5 nouveaux sur les endpoints AJAX du fil) |
+| Vérification HTTP (serveur local) | `/`, `/prestataires/`, `/login/`, `/signup/`, `/feed/list/`, `/api/prestataire/`, `/api/feed/`, `/api/villes/`, `/api/categories/`, `/api/abonnement/plans/` → 200 ; `/abonnement/plans/` → 302 (connexion requise) |
+| Accueil avec 3 publications | les cartes du fil sont rendues (sélecteur + préchargements OK) |
+
+Aucun test n'a été supprimé ni adapté à la baisse : les 97 tests existants
+(parcours web, API DRF, notifications, abonnements, fil) passent sans
+modification, ce qui prouve la préservation des comportements et des contrats.
+
+### 13.9 Migrations et actions manuelles
+
+- **Aucune migration** : seuls des fichiers Python ont été déplacés ; le schéma
+  de base est inchangé (aucune opération destructive).
+- **Aucune variable d'environnement** nouvelle.
+- Après déploiement : rien de particulier, le serveur applicatif suffit
+  (`python manage.py migrate` n'est nécessaire que pour le lot précédent, §12).
+
+### 13.10 Reste à traiter
+
+- `main/tests.py` et `api/tests.py` pourraient à leur tour devenir des paquets
+  `tests/` (test_vues, test_api…) pour se lire plus vite ; sans urgence.
+- Les fichiers `api/admin.py`, `api/models.py`, `Feed/admin.py` contiennent les
+  imports par défaut de Django inutilisés (nettoyage cosmétique).
+- Validation des données du site : `PrestataireSignupForm` reste la frontière
+  unique — un passage aux `forms` par domaine n'est pas nécessaire aujourd'hui.
+- Côté Flutter, les gros écrans (`profile_screen.dart` 2551 lignes,
+  `login_screen.dart` 1617 lignes) restent à découper (hors périmètre backend).

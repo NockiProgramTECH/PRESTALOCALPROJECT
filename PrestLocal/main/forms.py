@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.utils.translation import gettext_lazy as _
-from .models import Evaluation, Prestataire, Ville, Prestation, Realisation
+from .models import Prestataire, Ville, Prestation, Realisation
 
 class RealisationForm(forms.ModelForm):
     """
