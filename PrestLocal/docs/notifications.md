@@ -6,7 +6,7 @@ Trois responsabilités nettement séparées :
 
 | Couche | Rôle | Fichiers |
 |---|---|---|
-| **Services métier** | *Qui* relancer, *quand*, *avec quel contenu* | `Notifications/abonnement.py`, `Notifications/service.py` |
+| **Services métier** | *Qui* relancer, *quand*, *avec quel contenu* | `Notifications/abonnement/` (`types`, `liens`, `cibles`, `envoi`), `Notifications/service.py` |
 | **Canaux (transport)** | *Comment* acheminer (email, WhatsApp, push) | `Notifications/channels/` |
 | **Workers (planification)** | *Quand exécuter* la campagne | `Notifications/tasks.py`, commandes `relance_*` |
 
@@ -17,7 +17,7 @@ Les vues n'envoient plus jamais d'email directement : elles appellent
 vue / tâche planifiée
         │
         ▼
-service métier (Notifications/abonnement.py)   → décide et rédige
+service métier (Notifications/abonnement/)      → décide et rédige
         │
         ▼
 service d'envoi (Notifications/service.py)     → diffuse + journalise

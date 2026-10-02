@@ -913,3 +913,81 @@ modification, ce qui prouve la préservation des comportements et des contrats.
   unique — un passage aux `forms` par domaine n'est pas nécessaire aujourd'hui.
 - Côté Flutter, les gros écrans (`profile_screen.dart` 2551 lignes,
   `login_screen.dart` 1617 lignes) restent à découper (hors périmètre backend).
+
+→ **Traité au §14** : les tests sont devenus des paquets, `abonnement.py` un
+paquet, et les huit gros écrans Flutter ont été découpés en bibliothèques +
+`parts` + mixins.
+
+---
+
+## 14. Découpage des fichiers volumineux (suite du §13)
+
+Point 10 de l'audit (§13.1) : « fichiers volumineux mêlant plusieurs
+responsabilités ». Traité en deux lots indépendants, sans toucher une seule
+route, un seul contrat d'API ni un seul comportement.
+
+### 14.1 Backend Django — modules éclatés en paquets
+
+| Avant | Lignes | Après |
+| --- | --- | --- |
+| `Notifications/abonnement.py` | 260 | `Notifications/abonnement/` : `types.py`, `liens.py`, `cibles.py`, `envoi.py` (+ `__init__.py` qui réexporte l'ancienne API) |
+| `api/tests.py` | 1 016 | `api/tests/` : `base.py` + un module par domaine (auth, prestataires, feed, évaluations, abonnement, messagerie) |
+| `Notifications/tests.py` | 390 | `Notifications/tests/` : `base.py` + liens, service, relance, commande |
+| `main/tests.py` + `main/test_services.py` | 231 + 429 | `main/tests/` : `base.py` + parcours web, vues AJAX, selectors, services comptes / avis / prestataires |
+
+`from Notifications.abonnement import cibles_relance, relancer, url_abonnement`
+fonctionne toujours : le `__init__.py` du paquet réexporte les quatre modules.
+Aucun import appelant n'a été modifié, **aucune migration**, aucune nouvelle
+dépendance.
+
+### 14.2 Application Flutter — bibliothèque + `parts` + mixins
+
+Les huit fichiers Dart les plus longs (8 977 lignes) deviennent chacun une
+**bibliothèque** qui déclare ses `part` dans `parts/` :
+
+| Écran | Avant | Après |
+| --- | --- | --- |
+| `profile_screen.dart` | 2 551 l. | 91 l. + 9 parts (`provider_detail*`, `user_dashboard*`, `portfolio_section`) |
+| `login_screen.dart` | 1 617 l. | 44 l. + 8 parts (`login_form*`, `register_form*`) |
+| `feed_detail_screen.dart` | 998 l. | 43 l. + 4 parts |
+| `subscription_screen.dart` | 759 l. | 34 l. + 4 parts |
+| `home_screen.dart` | 705 l. | 120 l. + 2 parts |
+| `search_screen.dart` | 876 l. | 46 l. + 3 parts |
+| `feed_composer_sheet.dart` | 765 l. | 59 l. + 4 parts |
+| `feed_card.dart` | 706 l. | 294 l. + 1 part |
+
+Deuxième temps : les méthodes privées des grosses classes d'état partent dans
+des **mixins** `on <classe parente>` appliqués par la clause `with` (20 mixins).
+Ce choix évite toute réécriture : `this`, `widget`, `setState` et les appels
+internes (`_servicesTab()`) restent valides, contrairement à des `extension`.
+Les champs, les `@override` (`initState`, `build`…) et les membres statiques
+restent dans la classe ; chaque mixin ne redéclare en abstrait que ce qu'il
+utilise (`Type get _x;`, `set _x(Type value);`).
+
+### 14.3 Pièges rencontrés (à connaître avant de recommencer)
+
+- Un fichier `part` **ne peut pas** contenir de directive `part`, et son `part
+  of` se résout **par rapport à lui-même** : dans `parts/`, il faut écrire
+  `part of '../<écran>.dart';` (la première version écrivait le nom nu, ce qui
+  ne compilait pas).
+- Une classe ne peut porter qu'**une** clause `with` : celle de
+  `SingleTickerProviderStateMixin` a été complétée, jamais dupliquée.
+- Les lignes déplacées ne sont **pas** réindentées (les chaînes de caractères
+  sont ainsi garanties intactes) ; un `dart format` fera le ménage cosmétique.
+- Les outils de découpage ne sont pas idempotents : les relancer sur un arbre
+  déjà découpé viderait les mixins (garde-fou ajouté côté script).
+
+### 14.4 Vérifications réellement exécutées
+
+- Python : `manage.py test` → **128 tests OK**, `manage.py check` sans
+  avertissement, pyflakes sans nouvelle alerte.
+- Dart : **aucun SDK Dart/Flutter n'est disponible dans cet environnement**,
+  donc pas de `flutter analyze`. Les 8 bibliothèques et leurs 35 `part` ont été
+  validés par un parseur Dart tolérant (limites connues mises à part : records
+  Dart, déjà refusés avant découpage) plus des contrôles maison : complétude des
+  déclarations, équilibre des délimiteurs, résolution de chaque membre abstrait,
+  câblage `part`/`part of` dans les deux sens, et comparaison **octet pour
+  octet** des 446 membres concernés — aucune différence.
+
+**À faire sur une machine outillée** : `dart format lib`, `flutter analyze`,
+`flutter test`. C'est la seule étape de ce lot qui n'a pas pu être jouée ici.

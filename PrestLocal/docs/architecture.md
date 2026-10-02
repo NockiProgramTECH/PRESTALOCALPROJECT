@@ -33,8 +33,8 @@ PrestLocal/
 │   ├── services/             #   comptes.py, avis.py, favoris.py, prestataires.py (+ __init__ = contrat public)
 │   ├── views/                #   pages.py, comptes.py, prestataires.py, portfolio.py, notifications.py
 │   ├── forms.py, urls.py
-│   ├── tests.py              #   parcours web (inscription, connexion)
-│   └── test_services.py      #   services, selectors, codes HTTP des endpoints AJAX
+│   └── tests/                #   base.py (helpers) + test_vues_comptes, test_vues_prestataires,
+│                             #   test_vues_ajax, test_services_*, test_models…
 ├── Abonnement/               # Offres et souscriptions
 │   ├── services.py           #   souscrire(), abonnement_actif(), assurer_plans_par_defaut()
 │   └── views.py, urls.py
@@ -46,8 +46,10 @@ PrestLocal/
 │   ├── channels/             #   base.py (interface), email.py, whatsapp.py, push.py
 │   ├── registre.py           #   CANAUX_DISPONIBLES — un canal = une ligne
 │   ├── service.py            #   ServiceNotification, envoyer_email(), envoyer_notification()
-│   ├── abonnement.py         #   cibles_relance(), relancer(), url_abonnement()
+│   ├── abonnement/           #   relances d'abonnement : types, liens, cibles, envoi
+│   │                         #   (`__init__` = contrat public : cibles_relance, relancer, url_abonnement)
 │   ├── tasks.py              #   executer_relances_abonnement() (worker)
+│   ├── tests/                #   base.py + test_liens, test_service, test_relance, test_commande
 │   └── management/commands/  #   relancer_abonnements, check_subscriptions (alias)
 ├── Messagerie/               # Conversations + WebSocket
 ├── api/                      # API REST (consommée par le site et l'application Flutter)
@@ -55,15 +57,24 @@ PrestLocal/
 │   ├── serializers/          #   commun, reference, prestataires, feed, comptes, abonnement
 │   ├── views/                #   prestataires, comptes, reference, feed, abonnement
 │   ├── urls.py, permissions.py
-│   └── tests.py              #   tests d'API (DRF)
+│   └── tests/                #   base.py + test_auth, test_prestataires, test_feed, test_abonnement…
 ├── templates/                # Gabarits HTML (site + emails/)
 └── docs/                     # architecture.md, notifications.md
 ```
 
-`api/serializers/` et `api/views/` sont des paquets : leurs `__init__.py`
-réexportent **tous** les noms publics, donc `from api.serializers import
-RegisterSerializer` et `from .views import FeedListView` restent valides. Un
-découpage futur n'oblige pas à modifier les imports.
+`api/serializers/`, `api/views/`, `main/services/`, `api/tests/`,
+`main/tests/`, `Notifications/tests/` et `Notifications/abonnement/` sont des
+**paquets** dont le `__init__.py` réexporte tous les noms publics : `from
+api.serializers import RegisterSerializer`, `from .views import FeedListView`
+et `from Notifications.abonnement import cibles_relance, relancer,
+url_abonnement` restent valides. Un découpage n'oblige donc jamais à modifier
+les imports des appelants.
+
+Règle de découpage appliquée (octobre 2026) : un module qui dépasse ~400 lignes
+devient un paquet, découpé **par domaine fonctionnel** (et non par type de
+code) ; un module de tests devient un paquet avec un `base.py` qui porte les
+helpers partagés et un fichier par domaine. Les commandes de test ne changent
+pas (`manage.py test`, `manage.py test api main Notifications`).
 
 ## 3. Exemple : le parcours d'un avis
 
@@ -85,7 +96,7 @@ découpage futur n'oblige pas à modifier les imports.
   nommée à l'infinitif, dépendances explicites, résultat clair, exceptions
   métier dédiées (`AvisInvalide`, `CodeInvalide`…). L'ajouter au `__init__.py`
   du paquet `services/` (contrat public) et écrire les tests dans
-  `main/test_services.py`.
+  `main/tests/` (un module `test_services_<domaine>.py`).
 - **Nouvelle lecture** → un selector (`main/selectors.py`, `Feed/selectors.py`,
   `api/selectors.py`) avec les `select_related` / `prefetch_related` nécessaires.
   Si la même règle de lecture revient pour un modèle, elle appartient à
@@ -108,12 +119,13 @@ découpage futur n'oblige pas à modifier les imports.
   plusieurs lignes (souscription, inscription + envoi du code, avis).
 - **N+1** : les listes annotent leurs compteurs (`avec_note_et_avis`) et
   préchargent leurs relations. Le test
-  `main.test_services.SelectorsTests.test_les_notes_ne_declenchent_pas_une_requete_par_carte`
+  `main.tests.test_selectors.SelectorsTests.test_les_notes_ne_declenchent_pas_une_requete_par_carte`
   échoue si une requête par carte réapparaît.
 - **Secrets** : uniquement via `.env` (voir `.env.example`) ; jamais dans le
   code, les logs ou les réponses.
 - **Tests** : `python manage.py test` doit rester vert avant chaque commit.
-  Les services et selectors se testent sans client HTTP (`main/test_services.py`).
+  Les services et selectors se testent sans client HTTP (`main/tests/base.py`
+  fournit les helpers, chaque module de test porte un domaine).
 
 ## 6. Tâches différées
 

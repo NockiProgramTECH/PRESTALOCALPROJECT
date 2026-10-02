@@ -40,7 +40,8 @@ PRESTALOCALPROJECT/                  # dépôt (nom de dossier historique conser
 │   ├── Notifications/             # Envoi multi-canal (email, WhatsApp, push) + relances d'abonnement
 │   │   ├── channels/ registre.py  #   canaux interchangeables (ajouter un canal = 1 classe + 1 ligne)
 │   │   ├── service.py             #   façade d'envoi (journalisation, idempotence)
-│   │   ├── abonnement.py          #   cibles_relance(), relancer(), url_abonnement()
+│   │   ├── abonnement/            #   relances : types.py, liens.py, cibles.py, envoi.py
+│   │   │                          #   (__init__ réexporte cibles_relance, relancer, url_abonnement)
 │   │   └── tasks.py               #   worker executer_relances_abonnement() + commande cron
 │   ├── Messagerie/                # App messagerie temps réel : Conversation, Message, WebSocket consumers
 │   ├── api/                       # API REST
@@ -48,6 +49,7 @@ PRESTALOCALPROJECT/                  # dépôt (nom de dossier historique conser
 │   │   ├── views/                 #   prestataires, comptes, reference, feed, abonnement
 │   │   └── selectors.py           #   querysets prêts pour l'API
 │   ├── docs/                      # architecture.md, notifications.md
+│   ├── tests (api/, main/, Notifications/)  # paquets : base.py + un module par domaine
 │   ├── templates/                 # Templates HTML Django (PWA)
 │   ├── static/                    # Fichiers statiques (CSS, JS)
 │   ├── media/                     # Uploads utilisateurs
@@ -63,9 +65,17 @@ PRESTALOCALPROJECT/                  # dépôt (nom de dossier historique conser
         ├── models/                # Modèles Dart (provider, conversation, feed, etc.)
         ├── providers/             # State management Riverpod (auth, favorites, app_state)
         ├── screens/               # Écrans (auth, home, search, feed, messages, profile, favorites)
+        │   └── <écran>/parts/     # Écrans longs : bibliothèque + `part`
+        │                          #   (part of '../<écran>.dart' ; méthodes extraites en mixins)
         ├── services/              # Clients API et WebSocket
         └── widgets/               # Composants réutilisables
 ```
+
+**Découpages d'octobre 2026** — modules Python dépassant ~400 lignes éclatés en
+paquets (`Notifications/abonnement/`, tests d'`api/`, `main/`,
+`Notifications/`) et écrans Flutter dépassant ~500 lignes éclatés en
+bibliothèque + `parts/`. Dans les deux cas les imports appelants et les routes
+sont inchangés (réexports), et le code déplacé est identique au caractère près.
 
 ---
 
