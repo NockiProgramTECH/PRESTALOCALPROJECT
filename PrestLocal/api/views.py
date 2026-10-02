@@ -79,8 +79,11 @@ class PrestataireViews(ModelViewSet):
     """Prestataires de services.
 
     - `GET /api/prestataire/` : liste filtrée / recherchée / triée.
+      Par défaut, **seuls les prestataires dont l'abonnement est actif**
+      apparaissent (`include_all=1` pour tout afficher, `abonnes_only=1`
+      conservé pour compatibilité).
       Filtres : `ville`, `metier`, `est_verifie`, `is_available`,
-      `categorie`, `quartier`, `etoile` (note minimale), `abonnes_only`.
+      `categorie`, `quartier`, `etoile` (note minimale).
       Recherche : `search=` (prénom, nom, bio, quartier).
       Tri : `ordering=annee_experience|-moyenne_etoile|date_inscription`.
     - `GET /api/prestataire/{id}/` : fiche complète (réalisations, avis).
@@ -124,12 +127,15 @@ class PrestataireViews(ModelViewSet):
         return PrestataireSerializers
 
     def get_queryset(self):
-        # NOTE: on ne filtre plus en dur sur l'abonnement payé/actif :
-        # - `populate_db.py` ne crée aucun abonnement → liste vide côté mobile.
-        # - les nouveaux comptes n'ont pas d'abonnement non plus.
-        # La visibilité « abonné en avant » reste exposée via
-        # `abonnement_actif` dans le serializer ; le filtre dur peut être
-        # réactivé avec `?abonnes_only=1`.
+        # Règle de visibilité : seuls les prestataires dont l'abonnement est
+        # payé, actif et non expiré apparaissent dans les recherches.
+        # `?include_all=1` lève le filtre (aperçu interne, administration,
+        # tests) ; `?abonnes_only=1` reste accepté pour compatibilité.
+        #
+        # Le filtre ne s'applique **qu'à la liste** : la fiche d'un
+        # prestataire non abonné reste consultable (on peut y arriver depuis
+        # une publication du fil), mais ses coordonnées sont masquées par le
+        # serializer (`contact_disponible = false`).
         queryset = (
             Prestataire.objects.filter(role=Prestataire.ROLE_PRESTATAIRE)
             .select_related('ville', 'metier', 'abonnement')
@@ -140,8 +146,9 @@ class PrestataireViews(ModelViewSet):
         )
 
         params = self.request.query_params
+        include_all = params.get('include_all') in ('1', 'true', 'True')
 
-        if params.get('abonnes_only') in ('1', 'true', 'True'):
+        if self.action == 'list' and not include_all:
             queryset = queryset.filter(
                 abonnement__paye=True,
                 abonnement__est_actif=True,

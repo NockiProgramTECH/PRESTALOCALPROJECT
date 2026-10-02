@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/brand_mark.dart';
+import '../../navigation/auth_navigation.dart';
 import '../profile/profile_edit_screen.dart';
 import 'password_reset_screen.dart';
 
@@ -67,7 +68,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // on dépile les écrans d'authentification empilés par-dessus pour que le
     // changement soit visible tout de suite (sans quoi la page reste figée
     // sur le formulaire de connexion).
-    navigator.popUntil((route) => route.isFirst);
+    popAuthRoutes(navigator);
 
     // Un prestataire dont le profil est incomplet ne peut pas être trouvé par
     // les clients : on l'amène directement à la configuration de son profil.
@@ -639,7 +640,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // d'inscription est dépilé jusqu'à la racine et l'utilisateur est
           // connecté ; le retour simple ramène donc au formulaire de connexion.
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+            authRoute((_) => const RegisterScreen()),
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
@@ -806,7 +807,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final messenger = ScaffoldMessenger.of(context);
 
       // Retour à la racine : AuthGate affiche l'interface connectée.
-      navigator.popUntil((route) => route.isFirst);
+      popAuthRoutes(navigator);
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -845,9 +846,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       navigator.pop();
       return;
     }
-    navigator.push(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    navigator.push(authRoute((_) => const LoginScreen()));
   }
 
   String _friendlyError(Object e) {

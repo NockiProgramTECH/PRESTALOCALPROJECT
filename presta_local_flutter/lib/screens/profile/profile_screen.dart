@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../models/provider_model.dart';
+import '../../navigation/auth_navigation.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/favorites_provider.dart';
@@ -201,11 +203,14 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
             ),
           ),
           SliverToBoxAdapter(child: _identityCard()),
+          if (!provider.contactDisponible)
+            SliverToBoxAdapter(child: _contactIndisponibleBanner()),
           SliverToBoxAdapter(child: _ctaRow()),
           SliverToBoxAdapter(child: _tabsHeader()),
           SliverToBoxAdapter(child: _tabViews()),
           SliverToBoxAdapter(child: _zoneSection()),
-          SliverToBoxAdapter(child: _quoteForm()),
+          if (provider.contactDisponible)
+            SliverToBoxAdapter(child: _quoteForm()),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
@@ -444,10 +449,51 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
     );
   }
 
+  /// Bandeau affiché quand le prestataire n'a pas d'abonnement actif.
+  ///
+  /// Ses publications restent visibles dans le fil, mais ses coordonnées sont
+  /// masquées : impossible de le contacter pour un job.
+  Widget _contactIndisponibleBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFED7AA)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 20,
+            color: AppTheme.primaryPressed,
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              "Ce prestataire n'a pas d'abonnement actif : ses coordonnées "
+              '(téléphone, email) sont masquées et la prise de contact est '
+              'désactivée. Ses réalisations restent visibles dans le fil.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                color: AppTheme.navy,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Boutons d'action principaux : Message, Appel, WhatsApp, Facebook.
   ///
   /// Quatre boutons de largeur égale (`Expanded`) : aucun risque de
   /// débordement horizontal quelle que soit la largeur de l'écran.
+  /// Sans abonnement actif chez le prestataire, les boutons sont désactivés
+  /// (coordonnées masquées par l'API).
   Widget _ctaRow() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -458,7 +504,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
               icon: Icons.chat_bubble_outline_rounded,
               label: 'Message',
               primary: true,
-              onTap: _openChat,
+              onTap: provider.contactDisponible ? _openChat : _contactBloque,
             ),
           ),
           const SizedBox(width: 8),
@@ -466,7 +512,9 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
             child: _actionButton(
               icon: Icons.call_outlined,
               label: 'Appel',
-              onTap: () => _call(provider.phone),
+              onTap: provider.contactDisponible
+                  ? () => _call(provider.phone)
+                  : _contactBloque,
             ),
           ),
           const SizedBox(width: 8),
@@ -475,7 +523,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
               icon: Icons.chat_rounded,
               label: 'WhatsApp',
               color: const Color(0xFF25D366),
-              onTap: _openWhatsApp,
+              onTap: provider.contactDisponible ? _openWhatsApp : _contactBloque,
             ),
           ),
           const SizedBox(width: 8),
@@ -546,8 +594,20 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
     );
   }
 
+  /// Message affiché quand le prestataire n'est pas contactable faute
+  /// d'abonnement actif.
+  void _contactBloque() {
+    _snack(
+      "Profil non contactable : ce prestataire n'a pas d'abonnement actif.",
+    );
+  }
+
   /// Ouvre (ou crée) la conversation avec le prestataire.
   Future<void> _openChat() async {
+    if (!provider.contactDisponible) {
+      _contactBloque();
+      return;
+    }
     if (ref.read(authProvider).status != AuthStatus.authenticated) {
       _snack('Connectez-vous pour envoyer un message');
       return;
@@ -576,6 +636,10 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
 
   /// Ouvre WhatsApp sur le numéro du prestataire (format international).
   Future<void> _openWhatsApp() async {
+    if (!provider.contactDisponible) {
+      _contactBloque();
+      return;
+    }
     final raw = (provider.whatsapp?.isNotEmpty == true)
         ? provider.whatsapp!
         : provider.phone;
@@ -1377,6 +1441,10 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
 
   /// Envoie la demande : crée la conversation puis y poste le récapitulatif.
   Future<void> _sendQuote() async {
+    if (!provider.contactDisponible) {
+      _contactBloque();
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final messenger = ScaffoldMessenger.of(context);
     if (ref.read(authProvider).status != AuthStatus.authenticated) {
@@ -1651,6 +1719,27 @@ class _UserDashboard extends ConsumerWidget {
           ]),
           _menuSection('PRÉFÉRENCES & SUPPORT', [
             _menuItem(
+              icon: Icons.workspace_premium_rounded,
+              iconBg: AppTheme.primarySoft,
+              iconColor: AppTheme.primaryPressed,
+              title: 'Abonnement',
+              subtitle: authState.isProvider
+                  ? 'Mettre mon profil en avant (application ou site web)'
+                  : 'Offres de mise en avant pour les prestataires',
+              onTap: () => _openAbonnement(context),
+            ),
+            _menuItem(
+              icon: Icons.open_in_new_rounded,
+              iconBg: AppTheme.inputFill,
+              iconColor: AppTheme.navy,
+              title: 'Gérer mon abonnement sur le site web',
+              subtitle: AppConstants.subscriptionWebUrl.replaceFirst(
+                RegExp(r'^https?://'),
+                '',
+              ),
+              onTap: () => _ouvrirAbonnementWeb(context),
+            ),
+            _menuItem(
               icon: Icons.notifications_outlined,
               iconBg: AppTheme.inputFill,
               iconColor: AppTheme.navy,
@@ -1730,6 +1819,20 @@ class _UserDashboard extends ConsumerWidget {
         .push(MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
   }
 
+  /// Ouvre la page d'abonnement du **site web** dans le navigateur.
+  ///
+  /// Le site reste la référence pour le paiement Mobile Money et la gestion
+  /// complète du profil prestataire ; l'application y renvoie explicitement.
+  Future<void> _ouvrirAbonnementWeb(BuildContext context) async {
+    final uri = Uri.parse(AppConstants.subscriptionWebUrl);
+    final ouvert = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ouvert && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Site web : ${AppConstants.webBaseUrl}')),
+      );
+    }
+  }
+
   /// Carte « abonnement » du tableau de bord prestataire.
   ///
   /// - abonnement actif  : rappel de l'offre et de l'échéance ;
@@ -1780,8 +1883,8 @@ class _UserDashboard extends ConsumerWidget {
                     actif
                         ? '${auth.abonnementPlan ?? 'Abonnement actif'}'
                             '${auth.abonnementJoursRestants > 0 ? ' · ${auth.abonnementJoursRestants} jour(s) restant(s)' : ''}'
-                        : 'Passez en tête des recherches des clients : '
-                            'offres à partir de 5 000 FCFA.',
+                        : 'Sans abonnement actif, votre profil n\'apparaît pas '
+                            'dans les recherches clients. Offres dès 5 000 FCFA.',
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.3,
@@ -1846,7 +1949,7 @@ class _UserDashboard extends ConsumerWidget {
             child: GestureDetector(
               onTap: () => Navigator.of(
                 context,
-              ).push(MaterialPageRoute(builder: (_) => RegisterScreen())),
+              ).push(authRoute((_) => RegisterScreen())),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -2105,7 +2208,7 @@ class _UserDashboard extends ConsumerWidget {
           GestureDetector(
             onTap: () => Navigator.of(
               context,
-            ).push(MaterialPageRoute(builder: (_) => RegisterScreen())),
+            ).push(authRoute((_) => RegisterScreen())),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
               decoration: BoxDecoration(

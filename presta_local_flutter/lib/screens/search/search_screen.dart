@@ -660,6 +660,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     color: AppTheme.primary,
                   ),
                 ),
+                // Règle de visibilité : un prestataire sans abonnement actif
+                // n'apparaît pas dans les résultats (ses publications restent
+                // visibles dans le fil d'actualité).
+                const Text(
+                  'Seuls les prestataires avec un abonnement actif sont listés ici.',
+                  style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
+                ),
               ],
             ),
           ),

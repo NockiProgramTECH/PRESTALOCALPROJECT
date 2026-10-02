@@ -31,6 +31,9 @@ class ProviderModel {
   final String? email;
   final bool isVerified;
   final bool isFeatured;
+  /// Faux quand le prestataire n'a pas d'abonnement actif : sa fiche reste
+  /// consultable (depuis une publication) mais ses coordonnées sont masquées.
+  final bool contactDisponible;
   final bool isOnline;
   final DateTime? lastActive;
 
@@ -57,6 +60,7 @@ class ProviderModel {
     this.email,
     this.isVerified = false,
     this.isFeatured = false,
+    this.contactDisponible = true,
     this.isOnline = false,
     this.lastActive,
   });
@@ -135,6 +139,8 @@ class ProviderModel {
       isVerified: json['est_verifie'] == true,
       // `abonnement_actif` de l'API : abonnement payé, actif et non expiré.
       isFeatured: json['abonnement_actif'] == true,
+      // Absent d'une ancienne réponse : on considère le contact disponible.
+      contactDisponible: json['contact_disponible'] != false,
       isOnline: json['is_available'] == true,
       lastActive: null,
     );

@@ -288,6 +288,32 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                               color: Colors.grey.shade600,
                             ),
                           ),
+                        // Publication visible, mais auteur non contactable
+                        // faute d'abonnement actif.
+                        if (!post.author.contactDisponible) ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF7ED),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: const Color(0xFFFED7AA),
+                              ),
+                            ),
+                            child: const Text(
+                              'Non contactable — abonnement inactif',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primaryPressed,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

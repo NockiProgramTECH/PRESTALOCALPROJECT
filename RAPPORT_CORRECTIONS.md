@@ -448,3 +448,83 @@ signal n'était envoyé à l'interface : l'app restait affichée en mode
 - `AuthGate` (`lib/main.dart`) dépile les écrans ouverts lors du passage
   connecté → déconnecté : l'écran de connexion redevient visible
   immédiatement (déconnexion volontaire comme expiration de session).
+
+## 10. Visibilité des prestataires liée à l'abonnement
+
+### 10.1 Règle appliquée
+
+Un compte prestataire peut être **actif** (email vérifié, profil complet) sans
+être **visible** : c'est l'abonnement qui ouvre la visibilité et le contact.
+
+| Situation | Liste des prestataires | Fiche détaillée | Coordonnées |
+| --- | --- | --- | --- |
+| Abonnement payé, actif, non expiré | présent | accessible | téléphone + email |
+| Sans abonnement (ou expiré) | **absent** | consultable (depuis une publication) | **masquées** |
+| Publications (fil d'actualité) | toujours visibles | — | auteur marqué « Non contactable » |
+
+Mise en œuvre côté API (`api/views.py`, `api/serializers.py`) :
+
+- `GET /api/prestataire/` filtre par défaut sur
+  `abonnement__paye=True`, `abonnement__est_actif=True`,
+  `abonnement__date_fin__gt=now`. `?include_all=1` lève le filtre (aperçu
+  interne, administration, tests) ; `?abonnes_only=1` reste accepté.
+- La fiche `GET /api/prestataire/<id>/` **reste accessible** : on peut y
+  arriver depuis une publication du fil. Le sérialiseur masque alors
+  `telephone` et `email` et renvoie `contact_disponible = false` (masquage en
+  lecture uniquement : l'écriture n'est pas impactée).
+- `FeedPrestataireSerializer` expose `abonnement_actif` et
+  `contact_disponible` pour que le fil signale un auteur non contactable.
+
+### 10.2 Application
+
+- `ProviderModel.contactDisponible` (nouveau) : la fiche prestataire affiche un
+  bandeau « Ce prestataire n'a pas d'abonnement actif… » et les boutons
+  **Message / Appel / WhatsApp** ainsi que le formulaire de devis sont
+  désactivés avec un message explicite.
+- Fil d'actualité : pastille « Non contactable — abonnement inactif » sur les
+  publications d'un auteur sans abonnement (ses réalisations restent visibles).
+- Recherche : mention « Seuls les prestataires avec un abonnement actif sont
+  listés ici ».
+- Profil prestataire : la carte d'abonnement indique désormais clairement
+  « Sans abonnement actif, votre profil n'apparaît pas dans les recherches
+  clients ».
+
+### 10.3 Lien vers le site web (fonctionnalité abonnement)
+
+Le site web reste la référence pour le paiement Mobile Money et la gestion
+complète du profil prestataire ; l'application y renvoie désormais
+explicitement :
+
+- section **PRÉFÉRENCES & SUPPORT** du profil → « Abonnement » (écran in-app)
+  et « Gérer mon abonnement sur le site web » (navigateur, URL affichée) ;
+- écran « Abonnement » → bouton **Gérer sur le site web** ;
+- méthodes mobiles « Moyens de paiement » et carte « Mettez votre profil en
+  avant » → parcours d'abonnement in-app.
+
+Nouvelle constante `AppConstants.webBaseUrl` (surchargeable au build via
+`--dart-define=WEB_BASE_URL=…`, sinon l'hôte de l'API) et
+`AppConstants.subscriptionWebUrl` = `<site>/abonnement/plans/`.
+
+### 10.4 Connexion : dépilement garanti des écrans d'authentification
+
+Pour supprimer définitivement l'effet « page figée après connexion »,
+indépendamment de l'écran d'où l'utilisateur se connecte :
+
+- `lib/navigation/auth_navigation.dart` : les écrans de connexion/inscription
+  sont empilés avec `authRoute()` (route nommée `auth`) ;
+- `LesProduFaoApp` écoute l'état d'authentification avec une **clé de
+  navigateur** : dès qu'une session s'ouvre, `popAuthRoutes()` dépile les
+  écrans d'authentification (sans toucher à la configuration du profil
+  poussée juste après) ; à la déconnexion ou à l'expiration de session, retour
+  à la racine.
+
+### 10.5 Vérifications
+
+- `python manage.py test` → **53 tests OK** (4 nouveaux : liste réservée aux
+  abonnés, coordonnées visibles pour un abonné, `include_all` qui lève le
+  filtre sans ouvrir le contact, abonnement expiré masqué).
+- Parcours API rejoué sur le serveur de développement :
+  liste par défaut = 8 abonnés ; inscription d'un prestataire sans abonnement
+  → absent de la liste, fiche consultable avec `contact_disponible = false`,
+  téléphone/email `null` ; `?include_all=1` → présent mais toujours masqué ;
+  après souscription → présent dans la liste (9 au total).

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'config/theme.dart';
+import 'navigation/auth_navigation.dart';
 import 'navigation/main_shell.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
@@ -62,6 +63,11 @@ class LesProduFaoApp extends ConsumerStatefulWidget {
 }
 
 class _LesProduFaoAppState extends ConsumerState<LesProduFaoApp> {
+  /// Clé du navigateur racine : permet de dépiler les écrans
+  /// d'authentification depuis l'état global, quelle que soit la page d'où
+  /// l'utilisateur s'est connecté.
+  final _navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   void initState() {
     super.initState();
@@ -72,9 +78,30 @@ class _LesProduFaoAppState extends ConsumerState<LesProduFaoApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Connexion / inscription : on dépile les écrans d'authentification pour
+    // que l'interface connectée (construite par AuthGate à la racine) soit
+    // immédiatement visible. Déconnexion ou session expirée : on revient à la
+    // racine, sinon l'écran de connexion resterait masqué par une page poussée.
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      final wasAuthenticated = previous?.status == AuthStatus.authenticated;
+      final isAuthenticated = next.status == AuthStatus.authenticated;
+
+      if (!wasAuthenticated && isAuthenticated) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final navigator = _navigatorKey.currentState;
+          if (navigator != null) popAuthRoutes(navigator);
+        });
+      } else if (wasAuthenticated && !isAuthenticated) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        });
+      }
+    });
+
     return MaterialApp(
       title: 'LesProduFao',
       debugShowCheckedModeBanner: false,
+      navigatorKey: _navigatorKey,
 
       // Thème clair Material 3 personnalisé (voir config/theme.dart)
       theme: AppTheme.lightTheme,
@@ -129,19 +156,6 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Déconnexion (volontaire ou session expirée) : on dépile les écrans
-    // ouverts (profil, abonnement, chat…) pour que l'écran de connexion soit
-    // réellement visible, au lieu de rester masqué par une page poussée.
-    ref.listen<AuthState>(authProvider, (previous, next) {
-      if (previous?.status == AuthStatus.authenticated &&
-          next.status == AuthStatus.unauthenticated) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        });
-      }
-    });
-
     final auth = ref.watch(authProvider);
 
     switch (auth.status) {

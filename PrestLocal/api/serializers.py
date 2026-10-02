@@ -44,6 +44,17 @@ def send_code_email(user, code, subject, template_name):
     msg.send(fail_silently=False)
 
 
+def contact_visible(obj):
+    """Règle produit : seuls les prestataires dont l'abonnement est payé, actif
+    et non expiré sont **contactables**.
+
+    Leur fiche reste consultable (utile depuis une publication du fil
+    d'actualité), mais sans téléphone ni email : `contact_disponible` indique à
+    l'application si elle doit afficher les boutons d'appel / message.
+    """
+    return bool(getattr(obj, 'has_active_subscription', False))
+
+
 class PrestataireSerializers(serializers.ModelSerializer):
     """Prestataire exposé dans la liste (`GET /api/prestataire/`)."""
     moyenne_etoile = serializers.FloatField(
@@ -63,6 +74,24 @@ class PrestataireSerializers(serializers.ModelSerializer):
     ville = serializers.StringRelatedField()
     metier = serializers.StringRelatedField()
     is_favorite = serializers.SerializerMethodField()
+
+    # Coordonnées réservées aux prestataires abonnés (voir `contact_visible`).
+    contact_disponible = serializers.SerializerMethodField()
+
+    def get_contact_disponible(self, obj):
+        return contact_visible(obj)
+
+    def to_representation(self, instance):
+        """Masque téléphone et email quand l'abonnement n'est pas actif.
+
+        Le masquage se fait à la lecture uniquement : les champs restent
+        modifiables en écriture (mise à jour d'un profil par un administrateur).
+        """
+        data = super().to_representation(instance)
+        if not contact_visible(instance):
+            data['telephone'] = None
+            data['email'] = None
+        return data
 
     class Meta:
         model = Prestataire
@@ -85,6 +114,7 @@ class PrestataireSerializers(serializers.ModelSerializer):
             'moyenne_etoile',
             'nombre_avis',
             'abonnement_actif',
+            'contact_disponible',
             'is_favorite',
         ]
 
@@ -207,6 +237,13 @@ class FeedPrestataireSerializer(serializers.ModelSerializer):
     nombre_avis = serializers.IntegerField(
         source='review_count', read_only=True
     )
+    # Publications visibles par tous, mais contact réservé aux abonnés.
+    abonnement_actif = serializers.BooleanField(
+        source='has_active_subscription', read_only=True
+    )
+    contact_disponible = serializers.BooleanField(
+        source='has_active_subscription', read_only=True
+    )
 
     class Meta:
         model = Prestataire
@@ -220,6 +257,8 @@ class FeedPrestataireSerializer(serializers.ModelSerializer):
             'est_verifie',
             'moyenne_etoile',
             'nombre_avis',
+            'abonnement_actif',
+            'contact_disponible',
         ]
 
     def get_nom_complet(self, obj):
@@ -358,6 +397,20 @@ class PrestatireDetailSerialzer(serializers.ModelSerializer):
     photo_profil_url = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
 
+    # Coordonnées réservées aux prestataires abonnés (voir `contact_visible`).
+    contact_disponible = serializers.SerializerMethodField()
+
+    def get_contact_disponible(self, obj):
+        return contact_visible(obj)
+
+    def to_representation(self, instance):
+        """Fiche consultable sans abonnement, mais coordonnées masquées."""
+        data = super().to_representation(instance)
+        if not contact_visible(instance):
+            data['telephone'] = None
+            data['email'] = None
+        return data
+
     class Meta:
         model = Prestataire
 
@@ -390,6 +443,7 @@ class PrestatireDetailSerialzer(serializers.ModelSerializer):
             'nombre_avis',
 
             'abonnement_actif',
+            'contact_disponible',
             'is_favorite',
 
             'date_inscription',

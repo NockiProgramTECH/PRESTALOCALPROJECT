@@ -12,6 +12,9 @@ class FeedAuthorModel {
   final String ville;
   final String quartier;
   final bool isVerified;
+  /// Faux si l'auteur n'a pas d'abonnement actif : sa publication reste
+  /// visible, mais il n'est pas contactable.
+  final bool contactDisponible;
   final double rating;
   final int reviewCount;
 
@@ -23,6 +26,7 @@ class FeedAuthorModel {
     required this.ville,
     required this.quartier,
     required this.isVerified,
+    this.contactDisponible = true,
     required this.rating,
     required this.reviewCount,
   });
@@ -37,6 +41,7 @@ class FeedAuthorModel {
       ville: json['ville']?.toString() ?? '',
       quartier: json['quartier']?.toString() ?? '',
       isVerified: json['est_verifie'] == true,
+      contactDisponible: json['contact_disponible'] != false,
       rating: (json['moyenne_etoile'] as num?)?.toDouble() ?? 0,
       reviewCount: (json['nombre_avis'] as num?)?.toInt() ?? 0,
     );

@@ -105,6 +105,22 @@ class BaseAPITestCase(APITestCase):
             ville=cls.ville,
         )
 
+        # `pro` est abonné : il est donc visible dans les recherches (règle de
+        # visibilité). `other_pro` reste sans abonnement pour vérifier qu'il
+        # est bien masqué de la liste tout en gardant sa fiche consultable.
+        cls.plan = PlanAbonnement.objects.create(
+            nom='Découverte (1 mois)', prix=5000, duree_jours=30,
+            description='Visibilité standard.',
+        )
+        Abonnement.objects.create(
+            prestataire=cls.pro,
+            plan=cls.plan,
+            date_fin=timezone.now() + timedelta(days=30),
+            est_actif=True,
+            paye=True,
+            transaction_id='TEST-0001',
+        )
+
         cls.realisation = Realisation.objects.create(
             prestataire=cls.pro,
             image=upload('realisation.png'),
@@ -374,7 +390,9 @@ class AbonnementAPITests(BaseAPITestCase):
         self.assertIn('duree_jours', response.data[0])
 
     def test_provider_without_subscription(self):
-        self.login()
+        # `other_pro` n'a aucun abonnement (contrairement à `pro`, abonné pour
+        # les tests de visibilité).
+        self.login(email=self.other_pro.email)
         response = self.client.get('/api/abonnement/mon-abonnement/')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertFalse(response.data['actif'])
@@ -409,7 +427,7 @@ class AbonnementAPITests(BaseAPITestCase):
         self.assertTrue(status_response.data['actif'])
 
     def test_wrong_otp_is_rejected(self):
-        self.login()
+        self.login(email=self.other_pro.email)
         response = self.client.post(
             '/api/abonnement/souscrire/',
             {'plan': self.plan.id, 'methode': 'Wave', 'otp': '12'},
@@ -417,7 +435,9 @@ class AbonnementAPITests(BaseAPITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('otp', response.data)
-        self.assertFalse(Abonnement.objects.filter(prestataire=self.pro).exists())
+        self.assertFalse(
+            Abonnement.objects.filter(prestataire=self.other_pro).exists()
+        )
 
     def test_unknown_operator_is_rejected(self):
         self.login()
@@ -473,11 +493,16 @@ class PrestataireAPITests(BaseAPITestCase):
         self.assertFalse(item['is_favorite'])
 
     def test_filters_by_ville_and_metier(self):
-        response = self.client.get(f'/api/prestataire/?ville={self.ville.id}')
+        # `include_all=1` : on teste les filtres, pas la visibilité.
+        response = self.client.get(
+            f'/api/prestataire/?ville={self.ville.id}&include_all=1'
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 2)
 
-        response = self.client.get(f'/api/prestataire/?metier={self.metier2.id}')
+        response = self.client.get(
+            f'/api/prestataire/?metier={self.metier2.id}&include_all=1'
+        )
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(
             response.data['results'][0]['id'], str(self.other_pro.id)
@@ -485,10 +510,60 @@ class PrestataireAPITests(BaseAPITestCase):
 
     def test_filters_by_categorie(self):
         response = self.client.get(
-            f'/api/prestataire/?categorie={self.categorie.id}'
+            f'/api/prestataire/?categorie={self.categorie.id}&include_all=1'
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 2)
+
+    # ---- Visibilité liée à l'abonnement ---------------------------------
+
+    def test_only_subscribed_providers_are_listed(self):
+        """Seuls les abonnés sont visibles ; les autres restent consultables."""
+        response = self.client.get('/api/prestataire/')
+        ids = [item['id'] for item in response.data['results']]
+        self.assertIn(str(self.pro.id), ids)
+        self.assertNotIn(str(self.other_pro.id), ids)
+
+        # La fiche du non-abonné reste accessible (depuis une publication)…
+        detail = self.client.get(f'/api/prestataire/{self.other_pro.id}/')
+        self.assertEqual(detail.status_code, 200)
+        self.assertFalse(detail.data['abonnement_actif'])
+        # … mais ses coordonnées sont masquées : on ne peut pas le contacter.
+        self.assertFalse(detail.data['contact_disponible'])
+        self.assertIsNone(detail.data['telephone'])
+        self.assertIsNone(detail.data['email'])
+
+    def test_subscribed_provider_contact_is_visible(self):
+        detail = self.client.get(f'/api/prestataire/{self.pro.id}/')
+        self.assertTrue(detail.data['contact_disponible'])
+        self.assertEqual(detail.data['telephone'], '+226 70 00 00 01')
+        self.assertIsNotNone(detail.data['email'])
+
+        liste = self.client.get('/api/prestataire/')
+        item = next(
+            i for i in liste.data['results'] if i['id'] == str(self.pro.id)
+        )
+        self.assertTrue(item['contact_disponible'])
+        self.assertEqual(item['telephone'], '+226 70 00 00 01')
+
+    def test_include_all_bypasses_visibility_rule(self):
+        response = self.client.get('/api/prestataire/?include_all=1')
+        ids = [item['id'] for item in response.data['results']]
+        self.assertIn(str(self.other_pro.id), ids)
+        item = next(
+            i for i in response.data['results'] if i['id'] == str(self.other_pro.id)
+        )
+        # Le filtre levé n'ouvre pas les coordonnées pour autant.
+        self.assertFalse(item['contact_disponible'])
+        self.assertIsNone(item['telephone'])
+
+    def test_expired_subscription_hides_provider(self):
+        Abonnement.objects.filter(prestataire=self.pro).update(
+            date_fin=timezone.now() - timedelta(days=1),
+        )
+        response = self.client.get('/api/prestataire/')
+        ids = [item['id'] for item in response.data['results']]
+        self.assertNotIn(str(self.pro.id), ids)
 
     def test_search_and_star_filter(self):
         Evaluation.objects.create(
@@ -536,18 +611,10 @@ class PrestataireAPITests(BaseAPITestCase):
         self.assertIn('nom', prestations.data[0])
 
     def test_abonnement_actif_flag(self):
-        plan = PlanAbonnement.objects.create(
-            nom='Premium', prix=5000, duree_jours=30
-        )
-        Abonnement.objects.create(
-            prestataire=self.pro,
-            plan=plan,
-            date_fin=timezone.now() + timedelta(days=30),
-            est_actif=True,
-            paye=True,
-        )
+        # `pro` est abonné depuis `setUpTestData` (voir BaseAPITestCase).
         response = self.client.get(f'/api/prestataire/{self.pro.id}/')
         self.assertTrue(response.data['abonnement_actif'])
+        self.assertTrue(response.data['contact_disponible'])
 
 
 # ===========================================================================

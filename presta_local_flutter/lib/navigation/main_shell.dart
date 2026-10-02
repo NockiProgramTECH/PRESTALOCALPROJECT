@@ -11,6 +11,7 @@ import '../screens/messages/chat_screen.dart';
 import '../screens/messages/messages_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/search/search_screen.dart';
+import 'auth_navigation.dart';
 import 'mobile_bottom_nav.dart';
 
 /// Écran principal : onglets + barre de navigation inférieure.
@@ -160,16 +161,12 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   /// Ouvre l'écran de connexion plein écran.
   void _openLoginScreen() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+    Navigator.of(context).push(authRoute((_) => const LoginScreen()));
   }
 
   /// Ouvre l'écran d'inscription plein écran.
   void _openRegisterScreen() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const RegisterScreen()));
+    Navigator.of(context).push(authRoute((_) => const RegisterScreen()));
   }
 
   /// Gère le changement d'onglet dans la barre de navigation.

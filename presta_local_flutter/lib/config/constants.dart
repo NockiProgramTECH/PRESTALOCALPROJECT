@@ -34,6 +34,25 @@ class AppConstants {
   /// fallback sert aux chemins relatifs renvoyés par certaines vues.
   static String get assetBaseUrl => baseUrl;
 
+  // ---- Site web --------------------------------------------------------
+  //
+  // Le site web (offres d'abonnement, paiement Mobile Money, profil
+  // prestataire complet) est servi par le même hôte que l'API. On peut le
+  // pointer ailleurs au build :
+  //   flutter run --dart-define=WEB_BASE_URL=https://lesprodufao.onrender.com
+  static const String _webBaseUrlOverride = String.fromEnvironment(
+    'WEB_BASE_URL',
+  );
+
+  static String get webBaseUrl =>
+      _webBaseUrlOverride.isNotEmpty ? _webBaseUrlOverride : baseUrl;
+
+  /// Page d'abonnement du site web (choix de l'offre → paiement Mobile Money).
+  static String get subscriptionWebUrl => '$webBaseUrl/abonnement/plans/';
+
+  /// Profil prestataire sur le site web (gestion de l'abonnement).
+  static String get providerProfileWebUrl => '$webBaseUrl/profile/';
+
   // ---- Informations générales ----
   static const String appName = 'LesProduFao';
   static const String appTagline = 'Trouvez les meilleurs prestataires locaux autour de vous';

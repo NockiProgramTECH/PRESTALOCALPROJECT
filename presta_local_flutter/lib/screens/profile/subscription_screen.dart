@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/subscription_service.dart';
@@ -68,6 +70,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         _loading = false;
         _error = 'Impossible de charger les offres. Vérifiez votre connexion.';
       });
+    }
+  }
+
+  /// Ouvre la page d'abonnement du site web dans le navigateur.
+  Future<void> _ouvrirSiteWeb() async {
+    final uri = Uri.parse(AppConstants.subscriptionWebUrl);
+    final ouvert = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ouvert && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Site web : ${AppConstants.webBaseUrl}')),
+      );
     }
   }
 
@@ -182,6 +195,18 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _ouvrirSiteWeb,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Gérer sur le site web'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 const Text(
                   'Paiement Mobile Money simulé (Orange Money, Moov Money, Wave) : '
                   'un code de confirmation à 6 chiffres active immédiatement '
