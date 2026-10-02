@@ -129,6 +129,19 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Déconnexion (volontaire ou session expirée) : on dépile les écrans
+    // ouverts (profil, abonnement, chat…) pour que l'écran de connexion soit
+    // réellement visible, au lieu de rester masqué par une page poussée.
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (previous?.status == AuthStatus.authenticated &&
+          next.status == AuthStatus.unauthenticated) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        });
+      }
+    });
+
     final auth = ref.watch(authProvider);
 
     switch (auth.status) {

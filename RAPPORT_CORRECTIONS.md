@@ -434,3 +434,17 @@ dans les listes et sur leur fiche.
   `abonnement_actif = true`, offre et jours restants ;
   `GET /api/prestataire/?abonnes_only=1` → 8 profils mis en avant.
 - Paiement **simulé** (comme sur le site) : aucun montant réel n'est prélevé.
+
+### 9.4 Session expirée : plus d'interface figée
+
+`ApiClient` vide les jetons dès que le refresh token est refusé, mais aucun
+signal n'était envoyé à l'interface : l'app restait affichée en mode
+« connecté » avec des écrans figés jusqu'au redémarrage.
+
+- `ApiClient.onSessionExpired` : nouveau signal émis sur 401 authentifié ou
+  refresh refusé.
+- `AuthNotifier` s'y abonne et repasse en état **déconnecté** avec un message
+  explicite (« Votre session a expiré, veuillez vous reconnecter. »).
+- `AuthGate` (`lib/main.dart`) dépile les écrans ouverts lors du passage
+  connecté → déconnecté : l'écran de connexion redevient visible
+  immédiatement (déconnexion volontaire comme expiration de session).

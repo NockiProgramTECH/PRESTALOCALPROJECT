@@ -97,7 +97,16 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
 
-  AuthNotifier(this._authService) : super(AuthState.initial());
+  AuthNotifier(this._authService) : super(AuthState.initial()) {
+    // Session expirée côté serveur (jetons invalidés) : on repasse en état
+    // déconnecté pour que l'interface se mette à jour immédiatement.
+    ApiClient.onSessionExpired = () {
+      if (!mounted || state.status != AuthStatus.authenticated) return;
+      state = AuthState.unauthenticated(
+        error: 'Votre session a expiré, veuillez vous reconnecter.',
+      );
+    };
+  }
 
   /// Restaure la session au démarrage de l'app.
   ///

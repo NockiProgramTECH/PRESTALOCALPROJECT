@@ -36,6 +36,14 @@ class ApiClient {
   static const String _accessKey = 'auth_access_token';
   static const String _refreshKey = 'auth_refresh_token';
 
+  /// Prévient l'application que la session a expiré (refresh token invalide).
+  ///
+  /// Sans ce signal, l'interface restait affichée en mode « connecté » alors
+  /// que les jetons étaient déjà supprimés : l'utilisateur voyait une page
+  /// figée jusqu'au redémarrage. Le provider d'authentification s'y abonne
+  /// pour repasser en état déconnecté.
+  static void Function()? onSessionExpired;
+
   // Stockage sécurisé des tokens (chiffré par le système : le Keystore
   // natif est utilisé par défaut, sans option dépréciée).
   static const FlutterSecureStorage _secure = FlutterSecureStorage(
@@ -268,6 +276,12 @@ class ApiClient {
       }
     }
 
+    // Toujours 401 sans jeton de rafraîchissement : la session est finie,
+    // on prévient l'application pour qu'elle revienne à l'écran de connexion.
+    if (response.statusCode == 401 && authenticated) {
+      onSessionExpired?.call();
+    }
+
     return response;
   }
 
@@ -331,10 +345,11 @@ class ApiClient {
         }
         return true;
       }
-      // Refresh invalide : on vide les tokens.
+      // Refresh invalide : on vide les tokens et on prévient l'application.
       await clearTokens();
       _cachedAccess = null;
       _cachedRefresh = null;
+      onSessionExpired?.call();
       return false;
     } catch (_) {
       return false;
