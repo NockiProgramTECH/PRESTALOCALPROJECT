@@ -153,19 +153,20 @@ a {
     gap: 10px;
 }
 
-/* Marque — carré arrondi dégradé citrus (identique au BrandMark de l'app) */
-.brand-mark {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--primary-green) 0%, #E07228 100%);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
+/* Marque — logo LesProduFao (emblème circulaire, fichier images/logo-mark.png) */
+.brand-logo {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(255, 138, 61, 0.35);
+    /* Retire les marges transparentes internes de l'illustration */
+    margin: -6px 0;
+}
+
+.footer-logo {
+    height: 120px;
+    width: auto;
+    display: block;
 }
 
 /* =============================================
@@ -3027,6 +3028,21 @@ footer {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         width: 100% !important;
     }
+}
+
+/* =============================================
+   PAGES D'AUTHENTIFICATION — logo de marque
+   ============================================= */
+.auth-brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.auth-brand__logo {
+    width: 132px;
+    height: auto;
+    display: block;
 }
 
 /* =============================================

@@ -11,12 +11,13 @@ import 'package:lesprodufao_flutter/widgets/empty_state.dart';
 /// autonomes et la lecture des réponses de l'API (parsing), ce qui permet de
 /// les exécuter avec `flutter test` sans backend lancé.
 void main() {
-  testWidgets('Écran de démarrage : marque + slogan', (tester) async {
+  testWidgets('Écran de démarrage : logo + slogan', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
 
-    expect(find.text('LesProduFao'), findsOneWidget);
+    // Logo officiel (assets/images/logo.png) + phrase d'accroche de la marque.
+    expect(find.byType(Image), findsOneWidget);
     expect(
-      find.text('Trouvez les meilleurs prestataires locaux'),
+      find.text('La communauté qui connecte les talents locaux'),
       findsOneWidget,
     );
   });

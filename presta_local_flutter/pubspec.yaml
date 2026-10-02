@@ -59,3 +59,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Logo officiel LesProduFao (voir tools/generate_brand_assets.py à la racine)
+  assets:
+    - assets/images/logo.png
+    - assets/images/logo_mark.png

@@ -1,9 +1,10 @@
+{% load static %}
 <footer style="background: var(--white); border-top: 1px solid var(--grey-200); padding: 60px 20px 100px; margin-top: 60px;">
     <div style="max-width: 1200px; margin: 0 auto;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 40px; margin-bottom: 40px;">
             <div style="flex: 1; min-width: 250px;">
                 <div class="logo" style="margin-bottom: 20px;">
-                    <span class="logo-text" style="font-size: 1.5rem; font-weight: 800;"><span class="brand-name">LesProdu</span><span class="brand-accent">Fao</span></span>
+                    <img src="{% static 'images/logo.png' %}" alt="LesProduFao" class="footer-logo">
                 </div>
                 <p style="color: var(--text-medium); line-height: 1.6; max-width: 300px;">La plateforme numéro 1 pour trouver des prestataires de confiance au Burkina Faso.</p>
             </div>

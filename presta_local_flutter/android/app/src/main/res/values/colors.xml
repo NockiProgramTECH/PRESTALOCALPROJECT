@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette LesProduFao (identique au design system de l'app et du site) -->
+    <color name="lesprodufao_navy">#FF1E293B</color>
+    <color name="lesprodufao_primary">#FFFF8A3D</color>
+    <color name="lesprodufao_canvas">#FFFBF9F7</color>
+</resources>

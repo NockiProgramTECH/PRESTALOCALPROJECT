@@ -229,3 +229,60 @@ sur les champs, bulles de messagerie orange (identiques à l'app).
   profil, notifications, messagerie, hors-ligne) — plus aucune trace de l'ancien nom.
 - Recherche plein texte dans le dépôt (hors dossiers `PrestLocal/` et
   `presta_local_flutter/`, conservés) : 0 occurrence de l'ancienne marque.
+
+---
+
+## 7. Logo officiel LesProduFao (site web + application)
+
+### 7.1 Source de marque
+
+- `tools/logo_source_emblem.png` — emblème (médaillon circulaire : artisans,
+  monument de Ouagadougou, étoile).
+- `tools/logo_source.png` — logo complet composé (emblème +
+  « LesProduFao » + signature « La communauté qui connecte les talents locaux » +
+  pastilles de métiers), fond transparent.
+- Scripts de régénération (à relancer après tout changement de logo) :
+  - `tools/compose_brand_logo.py` — compose le logo complet à partir de l'emblème ;
+  - `tools/generate_brand_assets.py --source tools/logo_source.png --mark-source tools/logo_source_emblem.png`
+    — produit toutes les déclinaisons (site + application).
+
+### 7.2 Site web (Django)
+
+| Emplacement | Fichier | Usage |
+| --- | --- | --- |
+| En-tête (desktop + mobile) | `static/images/logo-mark.png` (192 px) | emblème à côté du nom |
+| Pied de page | `static/images/logo.png` (640 px) | logo complet |
+| Pages d'authentification (connexion, inscription, vérification, mots de passe) | `static/images/logo.png` | en-tête du formulaire |
+| Page hors ligne | `static/images/logo.png` | au-dessus du message |
+| PWA / réseaux sociaux | `static/pwa/icon-*.png`, `static/apple-touch-icon.png`, `static/icon/favicon.ico`, `og:image` | icônes système et aperçus de partage |
+
+### 7.3 Application Flutter
+
+| Emplacement | Fichier |
+| --- | --- |
+| Écran de démarrage Flutter | `assets/images/logo.png` (`SplashScreen`, fond navy) |
+| Marque dans l'app (`BrandMark` ≥ 32 px) | `assets/images/logo_mark.png` |
+| Splash natif Android | `android/app/src/main/res/drawable{,-v21}/launch_background.xml` + `drawable-*/splash_logo.png` |
+| Splash natif iOS | `ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage*.png` |
+| Icônes Android / iOS / macOS / Windows | emblème (lisible à petite taille) |
+| Web Flutter | `web/favicon.png`, `web/icons/*` + écran de chargement dans `web/index.html` |
+
+> `BrandMark` conserve une pastille dégradée + clé à molette en dessous de 32 px
+> (l'illustration n'y serait pas lisible) : les puces de connexion gardent ainsi
+> une marque nette.
+
+### 7.4 Poids des fichiers
+
+Toutes les sorties sont redimensionnées à leur usage réel et compressées
+(`optimize=True`) : logo web 315 Ko (640 px), emblème web 64 Ko (192 px),
+logo app 566 Ko (900 px). À titre de comparaison, le premier export brut pesait
+1,8 Mo pour le seul en-tête du site.
+
+### 7.5 Vérifications
+
+- `python manage.py check` : aucun problème ; `collectstatic` régénéré.
+- Pages testées (200) avec logo présent : accueil, prestataires, à propos,
+  connexion, inscription, mot de passe oublié, hors ligne.
+- Assets servis : `/static/images/logo.png`, `/static/images/logo-mark.png`,
+  `/static/icon/favicon.ico`, `/static/pwa/icon-192x192.png`,
+  `/static/apple-touch-icon.png`, `/static/manifest.json`.

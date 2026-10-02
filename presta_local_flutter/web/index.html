@@ -31,8 +31,42 @@
 
   <title>LesProduFao</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Écran de chargement (retiré au premier rendu Flutter) */
+    #lesprodufao-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background-color: #1E293B;
+      z-index: 9999;
+    }
+    #lesprodufao-loader p {
+      margin: 0;
+      color: #FFFFFF;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+  </style>
 </head>
 <body>
+  <!-- Écran de chargement : logo LesProduFao pendant l'initialisation de Flutter -->
+  <div id="lesprodufao-loader">
+    <img src="icons/Icon-192.png" alt="LesProduFao" width="132" height="132">
+    <p>LesProduFao</p>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      const loader = document.getElementById('lesprodufao-loader');
+      if (loader) loader.remove();
+    });
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

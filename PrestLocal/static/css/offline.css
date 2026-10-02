@@ -9,6 +9,12 @@
     .offline-container {
         max-width: 480px;
     }
+    .offline-logo {
+        width: 150px;
+        height: auto;
+        margin: 0 auto 18px;
+        display: block;
+    }
     .offline-icon {
         font-size: 5rem;
         color: var(--primary-green, #FF8A3D);
