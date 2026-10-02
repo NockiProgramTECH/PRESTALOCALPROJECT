@@ -1,17 +1,13 @@
 
 import random
 import re
-import uuid
-from datetime import timedelta
 
-from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils import timezone
 from rest_framework import serializers
 
 from Abonnement.models import Abonnement, PlanAbonnement
+from Abonnement.services import souscrire
 from Feed.models import Commentaire, Like
+from Notifications.service import envoyer_email
 from main.models import (
     CategoriePrestation,
     Evaluation,
@@ -26,23 +22,22 @@ from main.models import (
 PHONE_REGEX = re.compile(r'^(\+?226)?[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}$')
 
 
-def send_code_email(user, code, subject, template_name):
+def send_code_email(user, code, subject, template_name, type_notification='code'):
     """Envoie un code (vérification / réinitialisation) par email.
 
-    L'expéditeur provient de `settings.DEFAULT_FROM_EMAIL` (plus d'adresse
-    codée en dur). En développement, `EMAIL_BACKEND` peut pointer vers la
-    console pour éviter d'envoyer de vrais emails.
+    Délègue au service de notification : l'expéditeur, le rendu du gabarit, la
+    journalisation et la gestion des erreurs sont centralisés (plus d'envoi
+    direct dans les sérialiseurs). En développement, ``EMAIL_BACKEND`` peut
+    pointer vers la console pour éviter d'envoyer de vrais emails.
     """
-    text_content = f"Votre code est : {code}"
-    html_content = render_to_string(template_name, {'user': user, 'code': code})
-    msg = EmailMultiAlternatives(
-        subject,
-        text_content,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
+    envoyer_email(
+        user,
+        sujet=subject,
+        texte=f"Votre code est : {code}",
+        template=template_name,
+        contexte={'user': user, 'code': code},
+        type_notification=type_notification,
     )
-    msg.attach_alternative(html_content, "text/html")
-    msg.send(fail_silently=False)
 
 
 def contact_visible(obj):
@@ -926,6 +921,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             code,
             subject="Réinitialisation de mot de passe - LesProduFao",
             template_name='emails/password_reset_code.html',
+            type_notification='code_reinitialisation',
         )
         return user
 
@@ -1033,6 +1029,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             code,
             subject="Code de vérification - LesProduFao",
             template_name='emails/verification_code.html',
+            type_notification='code_verification',
         )
         return user
 
@@ -1082,12 +1079,6 @@ class VerifyEmailSerializer(serializers.Serializer):
 
 #: Offres créées automatiquement si la base n'en contient aucune (mêmes
 #: valeurs que la page web « Abonnement »).
-DEFAULT_PLANS = (
-    ('Découverte (1 mois)', 5000, 30, 'Idéal pour commencer et tester la plateforme.'),
-    ('Professionnel (6 mois)', 25000, 180, 'Pour les pros qui veulent une visibilité durable.'),
-    ('Premium (1 an)', 45000, 365, "La meilleure valeur pour une présence continue toute l'année."),
-)
-
 #: Opérateurs Mobile Money proposés à la souscription (simulation).
 MOBILE_MONEY_OPERATORS = ('Orange Money', 'Moov Money', 'Wave')
 
@@ -1141,20 +1132,10 @@ class SouscriptionAbonnementSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        user = self.context['request'].user
-        plan = validated_data['plan']
-        date_fin = timezone.now() + timedelta(days=plan.duree_jours)
-
-        # `date_fin` est obligatoire : on la fournit dès la création pour ne
-        # jamais insérer de ligne incomplète.
-        abonnement, _ = Abonnement.objects.get_or_create(
-            prestataire=user,
-            defaults={'date_fin': date_fin},
+        # Activation déléguée au service métier partagé avec le site web :
+        # une seule règle de souscription dans tout le projet.
+        return souscrire(
+            self.context['request'].user,
+            validated_data['plan'],
+            prefixe="MOB",
         )
-        abonnement.plan = plan
-        abonnement.date_fin = date_fin
-        abonnement.est_actif = True
-        abonnement.paye = True
-        abonnement.transaction_id = f"MOB-{uuid.uuid4().hex[:8].upper()}"
-        abonnement.save()
-        return abonnement

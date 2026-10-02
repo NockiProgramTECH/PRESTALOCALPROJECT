@@ -665,3 +665,116 @@ des symboles utilisés (`AppTheme.*`, `AppConstants.*`, méthodes du service).
 L'application doit être **recompilée** (`flutter run` / `flutter build`) sur
 un poste disposant du SDK pour valider l'affichage final et, le cas échéant,
 reformater avec `dart format`.
+
+---
+
+## 12. Relances d'abonnement multi-canal et refactoring (architecture)
+
+### 12.1 Audit préalable — problèmes détectés
+
+| # | Problème | Emplacement | Gravité |
+|---|---|---|---|
+| 1 | Envoi d'emails **dupliqué à 6 endroits** (construction `EmailMultiAlternatives` + `render_to_string` + `try/except` recopiés) | `main/views.py` (×4), `api/serializers.py`, `Abonnement/management/commands/check_subscriptions.py` | forte |
+| 2 | Erreurs avalées par `except Exception` + `print(...)` : aucun journal, aucun suivi, succès affiché même si l'email n'est jamais parti | `main/views.py` | forte |
+| 3 | **Logique métier dans les vues** : règles d'abonnement (création, échéance, transaction) recopiées dans la vue web *et* dans le sérialiseur API | `Abonnement/views.py`, `api/serializers.py` | forte |
+| 4 | **Duplication like/commentaire** entre le site et l'API (deux implémentations du toggle et de l'ajout de commentaire) | `Feed/views.py`, `api/views.py` | moyenne |
+| 5 | Liste des offres par défaut recopiée dans deux modules | `Abonnement/views.py`, `api/views.py` + `DEFAULT_PLANS` | moyenne |
+| 6 | Rappel d'expiration : **une seule fois**, 7 jours avant, sans trace → un envoi manqué est définitif ; aucune relance des abonnements expirés ni des inscrits jamais abonnés | `check_subscriptions.py` | forte |
+| 7 | Liens des emails vers `/profile/` sans contexte : le prestataire ne sait pas pourquoi il reçoit le message ; aucun lien d'abonnement direct | `templates/emails/*` | moyenne |
+| 8 | Aucune journalisation applicative (pas de logger métier, `print()` en production) | transverse | moyenne |
+| 9 | Imports et constantes mortes après déplacement de logique | `api/serializers.py`, `Abonnement/views.py` | faible |
+| 10 | Fichiers volumineux mêlant plusieurs responsabilités : `api/serializers.py` (1160 l.), `api/views.py` (804 l.), `main/views.py` (596 l.) ; côté Flutter `profile_screen.dart` (2551 l.), `login_screen.dart` (1617 l.) | — | moyenne (planifié) |
+
+### 12.2 Plan appliqué (priorisé)
+
+1. **Couche de notifications** (`Notifications/`) : canaux interchangeables,
+   service d'envoi, journal en base (idempotence + traçabilité).
+2. **Services métier d'abonnement** : `souscrire` (règle unique), offres par
+   défaut, `abonnement_actif`.
+3. **Services métier du fil** : `basculer_like`, `ajouter_commentaire`,
+   `compter_commentaires` (partagés site + API).
+4. **Workers** : `executer_relances_abonnement` + commande
+   `relancer_abonnements` (planifiable), ancienne commande conservée en alias.
+5. **Refactoring des vues** : suppression des 6 envois directs d'emails.
+6. **Tests** : services, canaux, worker, vues d'abonnement (10 nouveaux).
+7. **Documentation** : `PrestLocal/docs/notifications.md`.
+
+### 12.3 Fichiers créés / modifiés
+
+**Créés** — `Notifications/{__init__,models,service,registre,abonnement,tasks,tests}.py`,
+`Notifications/channels/{base,email,whatsapp,push}.py`,
+`Notifications/management/commands/relancer_abonnements.py`,
+`Notifications/migrations/0001_initial.py`,
+`Feed/services.py`, `Feed/tests.py`, `Abonnement/services.py`,
+`Abonnement/tests.py`, `templates/emails/abonnement_relance.html`,
+`PrestLocal/docs/notifications.md`.
+
+**Modifiés** — `Core/settings.py` (app, canaux, seuils, loggers), `.env.example`,
+`main/views.py` (4 envois délégués, hook redondant retiré),
+`api/serializers.py` (`send_code_email` délégué, souscription déléguée, imports morts retirés),
+`api/views.py` (like/commentaire/offres délégués), `Feed/views.py`,
+`Abonnement/views.py` (+ vue `gestion_abonnement`), `Abonnement/urls.py`,
+`Abonnement/management/commands/check_subscriptions.py`,
+`templates/abonnement/plan_list.html` (bandeau), `templates/emails/subscription_request.html`
+(lien d'abonnement), `RAPPORT_CORRECTIONS.md`.
+
+### 12.4 Responsabilités déplacées
+
+| Avant | Après |
+|---|---|
+| Construction des emails dans les vues | `Notifications.service.envoyer_email` |
+| Règles d'attribution d'abonnement dans 2 fichiers | `Abonnement.services.souscrire` |
+| Toggle like / ajout commentaire dans 2 fichiers | `Feed.services` |
+| Liste des offres par défaut dans 2 fichiers | `Abonnement.services.PLANS_PAR_DEFAUT` |
+| Rappel d'expiration monolithique | `Notifications.abonnement` (règles) + `Notifications.tasks` (worker) |
+
+### 12.5 Améliorations de testabilité
+
+- Canaux **injectables** : `ServiceNotification(canaux=[CanalEnregistreur()])`
+  permet de tester un envoi sans SMTP ni réseau.
+- Backend email `locmem` + `mail.outbox` pour vérifier contenu et liens.
+- Services purs testés sans HTTP (`Feed/tests.py`, `Abonnement/tests.py`).
+- Vues testées sur les codes/rédactions (bandeau, redirections, refus du
+  mauvais compte).
+
+### 12.6 Vérifications réellement exécutées
+
+- `python manage.py check` → aucun problème.
+- `python manage.py test` → **97 tests OK** (66 → 87 → 97 : 21 tests
+  Notifications, 5 tests services du fil, 5 tests services d'abonnement).
+- Sur le serveur de développement :
+  `relancer_abonnements --simulation` → 3 cibles (bientôt expiré, expiré,
+  jamais abonné) ; exécution réelle → **3 emails envoyés** et journalisés ;
+  seconde exécution → *0 envoyée, 3 ignorées* (idempotence confirmée).
+- Lien du bouton vérifié dans le corps HTML :
+  `…/abonnement/gestion/<id>/?ref=<jeton signé>`.
+- Multi-canal par configuration seule : `NOTIFICATIONS_CHANNELS=email,whatsapp,push`
+  → journal `email:envoye`, `whatsapp:ignore`, `push:ignore`, **sans changer une
+  ligne de code métier**.
+- Parcours web : lien ouvert par le bon compte → redirection vers les offres et
+  bandeau affiché ; ouvert par un autre compte → redirection accueil, aucun
+  bandeau ; sans jeton → aucun bandeau.
+
+### 12.7 Actions manuelles nécessaires (déploiement)
+
+1. `python manage.py migrate` (crée la table du journal de notifications).
+2. Renseigner `SITE_URL` avec le domaine réel (les liens d'email partent de
+   cette base).
+3. Planifier `python manage.py relancer_abonnements` **une fois par jour**.
+4. Optionnel : `NOTIFICATIONS_CHANNELS`, clés WhatsApp/push quand les
+   fournisseurs seront choisis.
+
+### 12.8 Reste à traiter (non fait volontairement)
+
+- **Découpage des gros modules** (`api/serializers.py`, `api/views.py`,
+  `main/views.py` → packages) : refactoring mécanique à faire module par
+  module, sans bénéfice fonctionnel immédiat ; prioriser lors du prochain lot
+  touchant ces fichiers.
+- **Application mobile** : les canaux push/WhatsApp ne concernent que le
+  backend ; l'enregistrement des jetons d'appareil (FCM) reste à faire, ainsi
+  que son côté Flutter (`firebase_messaging`).
+- **File de tâches** : non installée (YAGNI). Si les campagnes deviennent
+  longues ou si l'on veut des tentatives automatiques, brancher Celery/RQ :
+  seul l'appelant du worker change.
+- **Refactoring Flutter** (`profile_screen.dart` 2551 lignes,
+  `login_screen.dart` 1617 lignes) : à découper par fonctionnalité.

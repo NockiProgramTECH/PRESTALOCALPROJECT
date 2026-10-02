@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'Feed',
     'api',
     'Messagerie',
+    'Notifications',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -259,6 +260,40 @@ EMAIL_CODE_TTL_MINUTES = env.int('EMAIL_CODE_TTL_MINUTES', default=30)
 
 
 # ---------------------------------------------------------------------------
+# Notifications (canaux interchangeables : email, WhatsApp, push…)
+# ---------------------------------------------------------------------------
+# URL publique du site : sert aux liens des emails (abonnement, échéances).
+SITE_URL = env('SITE_URL', default='http://localhost:8000')
+
+# Canaux actifs à l'envoi. Les canaux « whatsapp » et « push » sont déjà
+# branchés mais inactifs tant que leurs clés ne sont pas fournies : il suffit
+# de les ajouter ici (et de renseigner les clés ci-dessous) pour les activer,
+# sans modifier les services ni les vues.
+NOTIFICATIONS_CHANNELS = env.list(
+    'NOTIFICATIONS_CHANNELS', default=['email']
+)
+
+# Canal WhatsApp (implémentation future : API WhatsApp Business / fournisseur).
+NOTIFICATIONS_WHATSAPP_ENABLED = env.bool(
+    'NOTIFICATIONS_WHATSAPP_ENABLED', default=False
+)
+WHATSAPP_API_URL = env('WHATSAPP_API_URL', default='')
+WHATSAPP_API_TOKEN = env('WHATSAPP_API_TOKEN', default='')
+
+# Canal push (implémentation future : FCM / OneSignal).
+NOTIFICATIONS_PUSH_ENABLED = env.bool('NOTIFICATIONS_PUSH_ENABLED', default=False)
+PUSH_API_KEY = env('PUSH_API_KEY', default='')
+
+# Relances d'abonnement : jours avant expiration et ancienneté minimale des
+# prestataires jamais abonnés avant de les relancer ; validité du lien signé.
+RELANCE_ABONNEMENT_JOURS_AVANT = env.int('RELANCE_ABONNEMENT_JOURS_AVANT', default=7)
+RELANCE_SANS_ABONNEMENT_DELAI_JOURS = env.int(
+    'RELANCE_SANS_ABONNEMENT_DELAI_JOURS', default=3
+)
+RELANCE_LIEN_TTL_JOURS = env.int('RELANCE_LIEN_TTL_JOURS', default=90)
+
+
+# ---------------------------------------------------------------------------
 # Django REST Framework
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
@@ -361,5 +396,6 @@ LOGGING = {
     'loggers': {
         'django.request': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
         'api': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'Notifications': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
     },
 }

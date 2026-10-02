@@ -5,13 +5,20 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from django.conf import settings
 from django.db import models
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
 import random
 from .forms import PrestataireSignupForm, PrestataireLoginForm, PrestataireProfileForm, RealisationForm, VerifyEmailForm, PasswordResetRequestForm, PasswordResetConfirmForm
-from .models import Prestataire, CategoriePrestation, Prestation, Ville, Evaluation, Realisation, Favorite, Notification
+from .models import (
+    CategoriePrestation,
+    Evaluation,
+    Favorite,
+    Notification,
+    Prestataire,
+    Realisation,
+    Ville,
+)
+from Notifications.abonnement import url_abonnement
+from Notifications.service import envoyer_email
 
 
 class OfflineView(TemplateView):
@@ -178,30 +185,28 @@ def submit_evaluation(request, pk):
             commentaire=commentaire
         )
         
-        # Envoi de l'email de notification au prestataire
-        try:
-            subject = f"Nouvel avis reçu ({note}/5) - LesProduFao"
-            # Rendu du template HTML pour l'email
-            html_content = render_to_string('emails/evaluation.html', {
+        # Notification du prestataire : le service gère l'envoi, la
+        # journalisation et n'interrompt jamais la requête en cas d'échec.
+        envoyer_email(
+            prestataire,
+            sujet=f"Nouvel avis reçu ({note}/5) - LesProduFao",
+            texte=(
+                f"Bonjour {prestataire.first_name}, vous avez reçu un nouvel "
+                f"avis de {request.user.get_full_name()} : {note}/5 étoiles."
+            ),
+            template='emails/evaluation.html',
+            contexte={
                 'prestataire': prestataire,
                 'client': request.user,
                 'note': int(note),
                 'commentaire': commentaire,
-                'domain': request.get_host()
-            })
-            text_content = f"Bonjour {prestataire.first_name}, vous avez reçu un nouvel avis de {request.user.get_full_name()} : {note}/5 étoiles."
-            
-            msg = EmailMultiAlternatives(
-                subject, 
-                text_content, 
-                settings.DEFAULT_FROM_EMAIL, 
-                [prestataire.email]
-            )
-            msg.attach_alternative(html_content, "text/html")
-            msg.send()
-        except Exception as e:
-            print(f"Error sending email: {e}")
-            # On ne bloque pas la réponse si l'email échoue
+                'domain': request.get_host(),
+            },
+            type_notification='evaluation',
+            # Un avis donné une fois = un seul email (pas de doublon si la
+            # requête est rejouée).
+            cle_unique=f"avis:{evaluation.pk}",
+        )
 
         # Créer une notification pour le prestataire
         try:
@@ -220,7 +225,6 @@ def submit_evaluation(request, pk):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-from Feed.models import Realisation
 
 def index(request):
     categorie = CategoriePrestation.objects.all()
@@ -282,21 +286,18 @@ def signup_view(request):
             user.code_verification = code
             user.save()
         
-            subject = "Code de vérification - LesProduFao"
-            text_content = f"Votre code de vérification est : {code}"
-            # Rendu du template HTML pour l'email
-            html_content = render_to_string('emails/verification_code.html', {
-                'user': user,
-                'code': code
-            })
-            
-            # Utilisation de l'email fourni dans le formulaire
-            msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
+            sujet = "Code de vérification - LesProduFao"
+            texte = f"Votre code de vérification est : {code}"
 
-            msg.attach_alternative(html_content, "text/html")
-            
             try:
-                msg.send()
+                envoyer_email(
+                    user,
+                    sujet=sujet,
+                    texte=texte,
+                    template='emails/verification_code.html',
+                    contexte={'user': user, 'code': code},
+                    type_notification='code_verification',
+                )
                 request.session['verification_user_id'] = str(user.id)
                 messages.success(request, "Un code de vérification a été envoyé à votre adresse email.")
                 return redirect('main:verify_email')
@@ -333,19 +334,28 @@ def verify_email_view(request):
                 # Connecter l'utilisateur
                 login(request, user)
                 
-                # Envoyer l'email de demande d'abonnement
-                try:
-                    subject = "Activez votre profil sur LesProduFao"
-                    html_content = render_to_string('emails/subscription_request.html', {
+                # Email d'invitation à activer le profil (prestataires : lien
+                # direct vers la page d'abonnement).
+                if user.is_prestataire:
+                    url_abo = url_abonnement(user, base_url=request.build_absolute_uri('/')[:-1])
+                else:
+                    url_abo = request.build_absolute_uri('/')
+                envoyer_email(
+                    user,
+                    sujet="Activez votre profil sur LesProduFao",
+                    texte=(
+                        f"Bienvenue {user.first_name}, activez votre abonnement "
+                        "pour être visible."
+                    ),
+                    template='emails/subscription_request.html',
+                    contexte={
                         'user': user,
-                        'domain': request.get_host()
-                    })
-                    text_content = f"Bienvenue {user.first_name}, activez votre abonnement pour être visible."
-                    msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
-                    msg.attach_alternative(html_content, "text/html")
-                    msg.send()
-                except Exception as e:
-                    print(f"Error sending subscription email: {e}")
+                        'domain': request.get_host(),
+                        'url_abonnement': url_abo,
+                    },
+                    type_notification='activation_profil',
+                    cle_unique=f"activation:{user.pk}",
+                )
 
                 # La session de vérification n'a plus d'utilité.
                 request.session.pop('verification_user_id', None)
@@ -391,16 +401,14 @@ def password_reset_request_view(request):
                 user.code_verification = code
                 user.save()
                 
-                subject = "Réinitialisation de mot de passe - LesProduFao"
-                text_content = f"Votre code de réinitialisation est : {code}"
-                html_content = render_to_string('emails/password_reset_code.html', {
-                    'user': user,
-                    'code': code
-                })
-                
-                msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
-                msg.attach_alternative(html_content, "text/html")
-                msg.send()
+                envoyer_email(
+                    user,
+                    sujet="Réinitialisation de mot de passe - LesProduFao",
+                    texte=f"Votre code de réinitialisation est : {code}",
+                    template='emails/password_reset_code.html',
+                    contexte={'user': user, 'code': code},
+                    type_notification='code_reinitialisation',
+                )
                 
                 request.session['reset_user_id'] = str(user.id)
                 messages.success(request, generic_message)

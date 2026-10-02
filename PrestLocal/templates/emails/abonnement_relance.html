@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .email-container {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #EAE3DB;
+            border-radius: 12px;
+            color: #1E293B;
+            background-color: #ffffff;
+        }
+        .header {
+            color: #FF8A3D;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .cta-box {
+            background-color: #FFF3EC;
+            padding: 25px;
+            text-align: center;
+            border-radius: 10px;
+            margin: 25px 0;
+            border: 1px solid #FFDBC9;
+        }
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            background-color: #FF8A3D;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .rappel {
+            background-color: #FBF9F7;
+            border-left: 4px solid #FF8A3D;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #475569;
+        }
+        .footer {
+            font-size: 13px;
+            color: #64748B;
+            text-align: center;
+            margin-top: 30px;
+            border-top: 1px solid #F5F3F1;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <h2 class="header">{{ titre }}</h2>
+        <p>Bonjour {{ user.first_name }},</p>
+
+        <p>{{ message_texte }}</p>
+
+        {% if date_fin %}
+            <div class="rappel">
+                {% if motif == 'abonnement_expire_bientot' %}
+                    Votre abonnement <strong>{{ plan }}</strong> se termine le
+                    <strong>{{ date_fin|date:"d/m/Y" }}</strong>
+                    ({{ jours_restants }} jour{{ jours_restants|pluralize }} restant{{ jours_restants|pluralize }}).
+                {% else %}
+                    Votre abonnement <strong>{{ plan }}</strong> a pris fin le
+                    <strong>{{ date_fin|date:"d/m/Y" }}</strong>.
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div class="cta-box">
+            <p style="font-size: 1.05rem; font-weight: 600; margin-top: 0;">
+                Restez en avant auprès des clients
+            </p>
+            <p>
+                Renouvelez votre abonnement en quelques secondes par Mobile Money :
+                votre profil redevient visible dans les recherches et contactable.
+            </p>
+            <a href="{{ url_abonnement }}" class="btn">Gérer mon abonnement</a>
+        </div>
+
+        <p style="font-size: 13px; color: #64748B;">
+            Ce lien vous mène à votre espace d'abonnement : connectez-vous avec
+            votre adresse email pour retrouver votre offre et votre échéance.
+        </p>
+
+        <div class="footer">
+            L'équipe LesProduFao<br>
+            <span style="font-size: 11px;">Ceci est un message automatique, merci de ne pas y répondre.</span>
+        </div>
+    </div>
+</body>
+</html>

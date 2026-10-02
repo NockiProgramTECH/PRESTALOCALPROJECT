@@ -10,6 +10,20 @@
         <p style="color: var(--text-medium); font-size: 1.1rem;">Choisissez le plan qui correspond le mieux à vos besoins professionnels.</p>
     </div>
 
+    {% if relance_abonnement %}
+    <!-- Bandeau affiché quand le prestataire arrive depuis un email de relance -->
+    <div style="display: flex; align-items: flex-start; gap: 14px; background: #FFF3EC; border: 1px solid #FFDBC9; border-radius: 14px; padding: 18px 20px; margin-bottom: 34px;">
+        <i class="fas fa-bell" style="color: #FF8A3D; font-size: 1.2rem; margin-top: 2px;" aria-hidden="true"></i>
+        <div>
+            <p style="font-weight: 700; color: var(--text-dark); margin-bottom: 4px;">Votre abonnement conditionne votre visibilité</p>
+            <p style="color: var(--text-medium); font-size: 0.92rem; margin: 0;">
+                Sans abonnement actif, votre profil n'est plus mis en avant dans les recherches et n'est plus contactable.
+                Choisissez une offre ci-dessous pour rester visible.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
         {% for plan in plans %}
         <div style="background: var(--white); border-radius: 20px; padding: 40px; box-shadow: var(--shadow-md); border: 2px solid {% if forloop.counter == 2 %}var(--primary-green){% else %}var(--grey-200){% endif %}; position: relative; display: flex; flex-direction: column;">

@@ -51,11 +51,17 @@ from main.models import (
 
 from .permissions import IsOwnerOrReadOnly
 from Abonnement.models import Abonnement, PlanAbonnement
+from Abonnement.services import assurer_plans_par_defaut
+from Feed.services import (
+    CommentaireVide,
+    ajouter_commentaire,
+    basculer_like,
+    compter_commentaires,
+)
 
 from .serializers import (
     AbonnementSerializer,
     CategorieSerializer,
-    CommentaireSerializer,
     CommentaireSerializer,
     EvaluationCreateSerializer,
     EvaluationSerializer,
@@ -64,7 +70,6 @@ from .serializers import (
     FeedRealisationSerializer,
     FeedUpdateSerializer,
     PasswordResetConfirmSerializer,
-    DEFAULT_PLANS,
     PasswordResetRequestSerializer,
     PlanAbonnementSerializer,
     PrestataireSerializers,
@@ -644,22 +649,20 @@ class FeedDetailView(APIView):
 
 
 class FeedLikeView(APIView):
-    """Aime ou retire le like d'une réalisation (toggle)."""
+    """Aime ou retire le like d'une réalisation (toggle).
+
+    La règle métier est dans `Feed.services.basculer_like` (partagée avec le
+    site web) ; la vue se limite à l'authentification, la récupération de
+    l'objet et la mise en forme de la réponse.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
         realisation = get_object_or_404(Realisation, id=pk)
-        like, created = Like.objects.get_or_create(
-            user=request.user, realisation=realisation
-        )
-        if not created:
-            like.delete()
-            liked = False
-        else:
-            liked = True
+        resultat = basculer_like(request.user, realisation)
         return Response({
-            'liked': liked,
-            'like_count': realisation.likes.count(),
+            'liked': resultat.liked,
+            'like_count': resultat.like_count,
         })
 
 
@@ -682,23 +685,22 @@ class FeedCommentView(APIView):
 
     def post(self, request, pk):
         realisation = get_object_or_404(Realisation, id=pk)
-        contenu = (request.data.get('contenu') or '').strip()
-        if not contenu:
+        try:
+            commentaire = ajouter_commentaire(
+                request.user, realisation, request.data.get('contenu')
+            )
+        except CommentaireVide:
+            # Erreur métier → 400 explicite (jamais une 500).
             return Response(
                 {'detail': 'Le commentaire est vide.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        commentaire = Commentaire.objects.create(
-            user=request.user,
-            realisation=realisation,
-            contenu=contenu,
-        )
         serializer = CommentaireSerializer(
             commentaire, context={'request': request}
         )
         return Response({
             'comment': serializer.data,
-            'comment_count': realisation.commentaires.count(),
+            'comment_count': compter_commentaires(realisation),
         }, status=status.HTTP_201_CREATED)
 
 
@@ -708,20 +710,10 @@ class FeedCommentView(APIView):
 def _ensure_default_plans():
     """Crée les offres par défaut si la base n'en contient aucune.
 
-    Même comportement que la page web « Abonnement » : la plateforme reste
-    utilisable même sur une base neuve où `populate_db` n'a pas été lancé.
+    Délègue au domaine `Abonnement` : la liste des offres n'existe plus qu'à un
+    seul endroit (site web et API affichent donc toujours les mêmes tarifs).
     """
-    if PlanAbonnement.objects.exists():
-        return
-    for nom, prix, duree, description in DEFAULT_PLANS:
-        PlanAbonnement.objects.get_or_create(
-            nom=nom,
-            defaults={
-                'prix': prix,
-                'duree_jours': duree,
-                'description': description,
-            },
-        )
+    assurer_plans_par_defaut()
 
 
 class PlanAbonnementListView(ListAPIView):

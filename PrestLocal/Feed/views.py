@@ -4,7 +4,12 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from main.models import Realisation
-from .models import Like, Commentaire
+from .services import (
+    CommentaireVide,
+    ajouter_commentaire,
+    basculer_like,
+    compter_commentaires,
+)
 
 # Nombre de réalisations chargées par page (utilisé ici ET dans main/views.py)
 FEED_PAGE_SIZE = 6
@@ -14,20 +19,16 @@ FEED_PAGE_SIZE = 6
 def toggle_like(request, realisation_id):
     """
     Aime ou retire le like d'une réalisation.
+
+    Règle métier partagée avec l'API mobile (`Feed.services.basculer_like`).
     """
     realisation = get_object_or_404(Realisation, id=realisation_id)
-    like, created = Like.objects.get_or_create(user=request.user, realisation=realisation)
-    
-    if not created:
-        like.delete()
-        liked = False
-    else:
-        liked = True
-        
+    resultat = basculer_like(request.user, realisation)
+
     return JsonResponse({
         'status': 'success',
-        'liked': liked,
-        'like_count': realisation.likes.count()
+        'liked': resultat.liked,
+        'like_count': resultat.like_count
     })
 
 @login_required
@@ -35,19 +36,20 @@ def toggle_like(request, realisation_id):
 def add_comment(request, realisation_id):
     """
     Ajoute un commentaire à une réalisation.
+
+    Règle métier partagée avec l'API mobile (`Feed.services.ajouter_commentaire`).
     """
     realisation = get_object_or_404(Realisation, id=realisation_id)
-    contenu = request.POST.get('contenu')
-    
-    if not contenu or not contenu.strip():
-        return JsonResponse({'status': 'error', 'message': 'Le commentaire est vide.'}, status=400)
-        
-    commentaire = Commentaire.objects.create(
-        user=request.user,
-        realisation=realisation,
-        contenu=contenu.strip()
-    )
-    
+    try:
+        commentaire = ajouter_commentaire(
+            request.user, realisation, request.POST.get('contenu')
+        )
+    except CommentaireVide:
+        return JsonResponse(
+            {'status': 'error', 'message': 'Le commentaire est vide.'},
+            status=400,
+        )
+
     return JsonResponse({
         'status': 'success',
         'comment': {
@@ -55,7 +57,7 @@ def add_comment(request, realisation_id):
             'contenu': commentaire.contenu,
             'date': "À l'instant"
         },
-        'comment_count': realisation.commentaires.count()
+        'comment_count': compter_commentaires(realisation)
     })
 
 def feed_list(request):

@@ -1,45 +1,49 @@
+"""Ancienne commande de rappel — conservée comme alias.
+
+La logique a été déplacée dans les services (`Notifications/abonnement.py`) et
+le worker (`Notifications/tasks.py`), puis étendue aux abonnements **expirés**
+et aux prestataires **jamais abonnés**. Cette commande est conservée pour ne
+pas casser une planification existante (cron, documentation, hébergeur) : elle
+délègue à la nouvelle commande.
+
+Préférer désormais :
+
+.. code-block:: bash
+
+    python manage.py relancer_abonnements
+"""
+
+import logging
+
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from Abonnement.models import Abonnement
-from django.conf import settings
+
+from Notifications.registre import canaux_actifs
+from Notifications.tasks import executer_relances_abonnement
+
+logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
-    help = 'Vérifie les abonnements arrivant à expiration dans 7 jours et envoie des emails.'
+    help = (
+        "DÉPRÉCIÉ : alias de « relancer_abonnements ». Relance les "
+        "prestataires dont l'abonnement arrive à expiration, est expiré, ou "
+        "qui ne se sont jamais abonnés."
+    )
 
     def handle(self, *args, **options):
-        # On cherche les abonnements qui expirent exactement dans 7 jours
-        cible = timezone.now() + timezone.timedelta(days=7)
-        debut_jour = cible.replace(hour=0, minute=0, second=0, microsecond=0)
-        fin_jour = cible.replace(hour=23, minute=59, second=59, microsecond=999999)
-        
-        abonnements = Abonnement.objects.filter(
-            date_fin__range=(debut_jour, fin_jour),
-            est_actif=True
+        self.stdout.write(
+            self.style.WARNING(
+                "« check_subscriptions » est dépréciée : utilisez "
+                "« python manage.py relancer_abonnements » (mêmes garanties, "
+                "relances plus complètes)."
+            )
         )
-        
-        count = 0
-        for abo in abonnements:
-            try:
-                subject = "Votre abonnement expire bientôt - LesProduFao"
-                html_content = render_to_string('emails/subscription_expiry.html', {
-                    'user': abo.prestataire,
-                    'expiry_date': abo.date_fin,
-                    'domain': 'lesprodufao.com' # Idéalement utiliser un réglage
-                })
-                text_content = f"Bonjour {abo.prestataire.first_name}, votre abonnement expire dans 7 jours."
-                
-                msg = EmailMultiAlternatives(
-                    subject, 
-                    text_content, 
-                    settings.EMAIL_HOST_USER, 
-                    [abo.prestataire.email]
-                )
-                msg.attach_alternative(html_content, "text/html")
-                msg.send()
-                count += 1
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Erreur pour {abo.prestataire.email}: {e}"))
-        
-        self.stdout.write(self.style.SUCCESS(f"Traitement terminé. {count} emails envoyés."))
+        rapport = executer_relances_abonnement(canaux=canaux_actifs())
+        for ligne in rapport.details:
+            self.stdout.write(f"  - {ligne}")
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Relances : {rapport.cibles} cible(s), {rapport.envoyes} envoyée(s), "
+                f"{rapport.ignores} ignorée(s), {rapport.echecs} échec(s)."
+            )
+        )
