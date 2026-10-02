@@ -190,9 +190,16 @@ def populate():
             "first_name": "Abdoulaye",
             "last_name": "K.",
             "username": "client@lesprodufao.bf",
+            # Compte de démonstration côté client : sans rôle explicite, il
+            # prendrait le rôle « prestataire » par défaut et serait envoyé
+            # vers la configuration d'un profil prestataire.
+            "role": Prestataire.ROLE_CLIENT,
             "is_active": True
         }
     )
+    # Correction des bases créées avant l'ajout du rôle explicite.
+    if client_user.role != Prestataire.ROLE_CLIENT:
+        client_user.role = Prestataire.ROLE_CLIENT
     client_user.set_password("password123")
     client_user.save()
 
