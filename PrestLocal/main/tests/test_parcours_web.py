@@ -1,24 +1,17 @@
-"""Tests des parcours web LesProduFao.
-
-Couvre l'inscription, la vérification de l'email (qui **connecte
-immédiatement** l'utilisateur) et l'orientation selon le rôle :
-
-- prestataire → configuration du profil (`main:profile`) ;
-- client       → espace client (`main:client_dashboard`).
-
-Lancer :
-
-    python manage.py test main -v 2
-"""
+"""Parcours web : inscription, vérification email, connexion, redirections."""
 
 from django.core import mail
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 
-from main.models import CategoriePrestation, Prestation, Prestataire, Ville
+from main.models import (
+    CategoriePrestation,
+    Prestation,
+    Prestataire,
+    Ville,
+)
 
 
-@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class SignupVerificationFlowTests(TestCase):
     """Inscription → code email → session ouverte + bonne destination."""
 
@@ -154,7 +147,6 @@ class SignupVerificationFlowTests(TestCase):
         self.assertEqual(page.context['prestataire'].pk, user.pk)
 
 
-@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class LoginRedirectionTests(TestCase):
     """Connexion web : un prestataire incomplet est envoyé à son profil."""
 
