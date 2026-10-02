@@ -154,6 +154,23 @@ class Prestataire(AbstractUser):
             return False
 
     @property
+    def profile_completed(self):
+        """Indique si le profil est suffisamment renseigné.
+
+        - Prestataire : métier + ville + quartier (la bio et la photo restent
+          optionnelles, mais sans ces trois champs il n'apparaît pas dans les
+          recherches).
+        - Client : prénom et nom.
+        """
+        if self.is_client:
+            return bool((self.first_name or '').strip() and (self.last_name or '').strip())
+        return bool(
+            self.metier_id
+            and self.ville_id
+            and (self.quartier or '').strip()
+        )
+
+    @property
     def average_rating(self):
         evaluations = self.evaluations.all()
         if not evaluations:

@@ -358,16 +358,35 @@ class RegisterView(APIView):
 
 
 class VerifyEmailView(APIView):
-    """Active le compte après validation du code reçu par email."""
+    """Active le compte après validation du code reçu par email.
+
+    Le compte est **immédiatement connecté** : la réponse contient les jetons
+    JWT (comme `/auth/token/`) ainsi que le profil, ce qui évite de redemander
+    à l'utilisateur de saisir ses identifiants juste après l'inscription.
+    """
     permission_classes = [AllowAny]
     throttle_scope = 'auth'
 
     def post(self, request):
         serializer = VerifyEmailSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            # Un compte déjà vérifié ne reçoit jamais de jetons ici : le code
+            # n'est plus vérifiable, seule une connexion avec mot de passe est
+            # légitime (sinon l'email seul suffirait à se connecter).
+            if serializer.validated_data.get('already_active'):
+                return Response(
+                    {"detail": "Cet email est déjà vérifié. Connectez-vous."},
+                    status=status.HTTP_200_OK,
+                )
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
             return Response(
-                {"detail": "Votre email a été vérifié. Vous pouvez maintenant vous connecter."},
+                {
+                    "detail": "Votre email a été vérifié. Vous êtes maintenant connecté.",
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "user": UserSerializer(user, context={'request': request}).data,
+                },
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

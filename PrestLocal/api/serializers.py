@@ -441,6 +441,9 @@ class UserSerializer(serializers.ModelSerializer):
     """
     is_prestataire = serializers.BooleanField(read_only=True)
     is_client = serializers.BooleanField(read_only=True)
+    # Permet à l'application de proposer la configuration du profil juste
+    # après l'inscription (prestataire : métier + ville + quartier).
+    profile_completed = serializers.BooleanField(read_only=True)
 
     photo_profil = serializers.ImageField(required=False, allow_null=True)
     photo_profil_url = serializers.SerializerMethodField()
@@ -483,6 +486,7 @@ class UserSerializer(serializers.ModelSerializer):
             'is_available',
             'is_prestataire',
             'is_client',
+            'profile_completed',
         ]
         read_only_fields = ['id', 'email', 'role']
 

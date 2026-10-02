@@ -3,6 +3,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorBorder = rootStyles.getPropertyValue('--danger-red') || 'var(--primary-red)';
     const defaultBorder = rootStyles.getPropertyValue('--grey-200') || '#ddd';
 
+    // Champs réservés aux prestataires : obligatoires seulement si le rôle
+    // « prestataire » est sélectionné (un client n'a pas de métier ni de zone
+    // d'intervention). La règle serveur reste identique (formulaire Django).
+    const PRO_FIELDS = ['id_metier', 'id_ville', 'id_quartier'];
+
+    function syncProFieldRequirements() {
+        const roleField = document.getElementById('id_role');
+        if (!roleField) return;
+        const isProvider = roleField.value === 'prestataire';
+        PRO_FIELDS.forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            if (isProvider) {
+                field.setAttribute('required', 'required');
+            } else {
+                field.removeAttribute('required');
+            }
+        });
+    }
+
     const forms = [
         { id: 'signupForm', validate: validateSignupForm },
         { id: 'loginForm', validate: validateSimpleForm },
@@ -47,6 +67,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         return true;
+    }
+
+    // Appliqué au chargement puis à chaque changement de rôle.
+    const roleField = document.getElementById('id_role');
+    if (roleField) {
+        syncProFieldRequirements();
+        roleField.addEventListener('change', syncProFieldRequirements);
     }
 
     function validateSimpleForm(form) {

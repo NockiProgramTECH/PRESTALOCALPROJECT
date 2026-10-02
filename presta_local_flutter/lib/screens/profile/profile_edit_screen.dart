@@ -18,7 +18,12 @@ import '../../services/auth_service.dart';
 /// (JSON pour les champs, multipart pour la photo) puis rafraîchit l'état.
 /// ---------------------------------------------------------------------------
 class ProfileEditScreen extends ConsumerStatefulWidget {
-  const ProfileEditScreen({super.key});
+  const ProfileEditScreen({super.key, this.onboarding = false});
+
+  /// Mode « première configuration » : affiché juste après la création d'un
+  /// compte prestataire. Le titre, le message d'introduction et le
+  /// comportement des boutons s'adaptent.
+  final bool onboarding;
 
   @override
   ConsumerState<ProfileEditScreen> createState() => _ProfileEditScreenState();
@@ -132,6 +137,20 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (widget.onboarding && _isProvider) {
+      // Sécurité : on n'enregistre pas une première configuration
+      // prestataire sans les informations qui rendent le profil visible.
+      if (_selectedMetierId == null ||
+          _selectedVilleId == null ||
+          _quartierController.text.trim().isEmpty) {
+        setState(
+          () => _error =
+              'Métier, ville et quartier sont nécessaires pour apparaître '
+              'dans les recherches.',
+        );
+        return;
+      }
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -148,10 +167,23 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             anneeExperience: int.tryParse(_anneeController.text.trim()),
           );
       if (!mounted) return;
+      final navigator = Navigator.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil mis à jour avec succès.')),
+        SnackBar(
+          content: Text(
+            widget.onboarding
+                ? 'Profil configuré ! Vous pouvez maintenant être visible.'
+                : 'Profil mis à jour avec succès.',
+          ),
+        ),
       );
-      Navigator.of(context).pop();
+      if (widget.onboarding) {
+        // Retour à la racine : l'utilisateur est connecté, AuthGate affiche
+        // donc l'interface principale.
+        navigator.popUntil((route) => route.isFirst);
+      } else {
+        navigator.pop();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -172,9 +204,16 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.black87,
-        title: const Text(
-          'Mon profil',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        leading: widget.onboarding
+            ? IconButton(
+                icon: const Icon(Icons.close_rounded),
+                tooltip: 'Plus tard',
+                onPressed: () => Navigator.of(context).maybePop(),
+              )
+            : null,
+        title: Text(
+          widget.onboarding ? 'Configurez votre profil' : 'Mon profil',
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SingleChildScrollView(
@@ -184,6 +223,40 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.onboarding) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 20,
+                        color: AppTheme.primaryPressed,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Bienvenue ! Renseignez votre métier, votre ville et '
+                          'votre quartier : ce sont ces informations qui '
+                          'permettent aux clients de vous trouver.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.navy,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
               // Avatar cliquable
               Center(child: _buildAvatar(user)),
               const SizedBox(height: 8),
@@ -245,6 +318,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   labelText: 'Ville',
                   prefixIcon: Icon(Icons.location_city_outlined),
                 ),
+                validator: (value) => widget.onboarding && value == null
+                    ? 'Sélectionnez votre ville'
+                    : null,
                 items: _villes
                     .map((v) => DropdownMenuItem(
                           value: v.id,
@@ -265,6 +341,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   prefixIcon: Icon(Icons.location_on_outlined),
                 ),
                 textCapitalization: TextCapitalization.words,
+                validator: (value) =>
+                    widget.onboarding && _isProvider &&
+                            (value == null || value.trim().isEmpty)
+                        ? 'Indiquez votre quartier'
+                        : null,
               ),
               const SizedBox(height: 16),
 
@@ -276,6 +357,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     labelText: 'Métier',
                     prefixIcon: Icon(Icons.handyman_outlined),
                   ),
+                  validator: (value) => widget.onboarding && value == null
+                      ? 'Sélectionnez votre métier'
+                      : null,
                   items: _metiers
                       .map((m) => DropdownMenuItem(
                             value: m.id,
@@ -345,7 +429,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Enregistrer', style: TextStyle(fontSize: 16)),
+                    : Text(
+                        widget.onboarding ? 'Terminer' : 'Enregistrer',
+                        style: const TextStyle(fontSize: 16),
+                      ),
               ),
             ],
           ),

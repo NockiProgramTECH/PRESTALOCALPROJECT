@@ -250,6 +250,15 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, f"Bienvenue, {user.first_name} !")
+                # Un prestataire dont le profil est incomplet ne peut pas être
+                # trouvé : on l'invite à le compléter avant tout.
+                if user.is_prestataire and not user.profile_completed:
+                    messages.info(
+                        request,
+                        "Complétez votre profil (métier, ville, quartier) pour "
+                        "apparaître dans les recherches.",
+                    )
+                    return redirect('main:profile')
                 return redirect('main:index')
             else:
                 messages.error(request, "Email ou mot de passe incorrect.")
@@ -337,11 +346,23 @@ def verify_email_view(request):
                 except Exception as e:
                     print(f"Error sending subscription email: {e}")
 
-                # Nettoyer la session
-                # del request.session['verification_user_id']
-                
-                messages.success(request, "Votre compte a été activé avec succès ! Bienvenue.")
-                return redirect('main:index')
+                # La session de vérification n'a plus d'utilité.
+                request.session.pop('verification_user_id', None)
+
+                messages.success(
+                    request,
+                    "Votre compte a été activé et vous êtes maintenant connecté. Bienvenue !",
+                )
+                # Un prestataire doit tout de suite configurer son profil pour
+                # pouvoir être visible (métier, ville, quartier).
+                if user.is_prestataire:
+                    messages.info(
+                        request,
+                        "Dernière étape : renseignez votre métier, votre ville et "
+                        "votre quartier, puis activez votre abonnement.",
+                    )
+                    return redirect('main:profile')
+                return redirect('main:client_dashboard')
             else:
                 messages.error(request, "Code de vérification incorrect.")
     else:

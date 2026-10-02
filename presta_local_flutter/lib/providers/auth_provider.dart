@@ -37,6 +37,7 @@ class AuthState {
   final String? role;
   final bool isProvider;
   final String? userPhoto;
+  final bool profileCompleted;
   final String? errorMessage;
 
   const AuthState({
@@ -48,6 +49,7 @@ class AuthState {
     this.role,
     this.isProvider = false,
     this.userPhoto,
+    this.profileCompleted = false,
     this.errorMessage,
   });
 
@@ -65,6 +67,7 @@ class AuthState {
       role: user.role,
       isProvider: user.isProvider,
       userPhoto: user.photoProfilUrl,
+      profileCompleted: user.profileCompleted,
     );
   }
 
@@ -145,12 +148,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
-  /// Vérifie l'email avec le code reçu pour activer le compte.
-  Future<void> verifyEmail({
+  /// Vérifie le code reçu par email **puis connecte immédiatement**
+  /// l'utilisateur (le backend renvoie les jetons JWT).
+  ///
+  /// Retourne le profil authentifié afin que l'appelant puisse router
+  /// (prestataire → configuration du profil).
+  Future<AuthUser> verifyEmailAndLogin({
     required String email,
     required String code,
   }) async {
-    await _authService.verifyEmail(email: email, code: code);
+    state = AuthState.loading();
+    try {
+      final user = await _authService.verifyEmail(email: email, code: code);
+      state = AuthState.authenticated(user);
+      return user;
+    } catch (e) {
+      state = AuthState.unauthenticated(
+        error: e is ApiException ? e.message : e.toString(),
+      );
+      rethrow;
+    }
   }
 
   /// Déconnecte l'utilisateur (révocation serveur + nettoyage local).

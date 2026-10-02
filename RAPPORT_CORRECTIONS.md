@@ -286,3 +286,86 @@ logo app 566 Ko (900 px). À titre de comparaison, le premier export brut pesait
 - Assets servis : `/static/images/logo.png`, `/static/images/logo-mark.png`,
   `/static/icon/favicon.ico`, `/static/pwa/icon-192x192.png`,
   `/static/apple-touch-icon.png`, `/static/manifest.json`.
+
+## 8. Inscription / connexion : correction des trois bugs signalés
+
+### 8.1 Le bug
+
+1. **Après vérification de l'email, l'utilisateur devait se reconnecter** — côté
+   site comme côté application.
+2. **Après connexion, l'écran ne changeait pas** (l'API `/api/auth/me/`
+   répondait 200 mais il fallait relancer l'application pour voir l'état
+   connecté).
+3. **Un prestataire n'était pas redirigé vers la configuration de son profil**
+   après la création de son compte.
+
+### 8.2 Cause n° 2 — navigation Flutter (écran figé)
+
+`AuthGate` est l'écran **racine** de `MaterialApp`, mais les écrans de
+connexion/inscription étaient ouverts par-dessus avec `Navigator.push`. Quand
+l'état passait à « connecté », `AuthGate` reconstruisait bien `MainShell`…
+sous l'écran de connexion toujours affiché : d'où la page figée.
+
+**Correctif** (`lib/screens/auth/login_screen.dart`) : après une connexion
+réussie, `Navigator.popUntil((route) => route.isFirst)` dépile tous les écrans
+d'authentification ; l'interface connectée devient immédiatement visible.
+Le lien « S'inscrire » empile désormais l'écran (`push` au lieu de
+`pushReplacement`) pour que ce dépilement soit toujours possible.
+
+### 8.3 Cause n° 1 — connexion automatique après vérification
+
+- **API** (`api/views.py`) : `POST /api/auth/verify-email/` renvoie maintenant
+  `access`, `refresh` et le profil (`user`) en plus du message — l'utilisateur
+  est connecté dans la requête qui vérifie son code. Par sécurité, un compte
+  **déjà** vérifié ne reçoit jamais de jetons par cette route (sinon l'email
+  suffirait à se connecter) : il obtient simplement « Cet email est déjà
+  vérifié. Connectez-vous. ».
+- **Application** (`services/auth_service.dart`, `providers/auth_provider.dart`) :
+  `AuthNotifier.verifyEmailAndLogin()` enregistre les jetons renvoyés, met à
+  jour l'état (`authenticated`) et retourne le profil. L'écran de vérification
+  n'affiche plus « Connectez-vous maintenant » : il poursuit directement le
+  parcours. Un repli (connexion avec le mot de passe de l'étape 1) couvre le cas
+  d'un backend qui ne renverrait pas de jetons.
+- **Site** (`main/views.py`) : la vue appelait déjà `login(request, user)` mais
+  le compte venait d'être créé avec `is_active = False` — `ModelBackend` refuse
+  un utilisateur inactif, donc la session n'était jamais créée. Elle active donc
+  le compte **avant** la connexion. Le gabarit annonce la connexion automatique.
+
+### 8.4 Cause n° 3 — redirection d'un prestataire vers son profil
+
+- **Site** (`main/views.py`) : après vérification, un prestataire est redirigé
+  vers `main:profile` (métier, ville, quartier, réalisation, abonnement), un
+  client vers son espace (`main:client_dashboard`). Une connexion ultérieure d'un
+  prestataire dont le profil est incomplet mène aussi à `main:profile` avec un
+  message d'invitation.
+- **Formulaire web** (`main/forms.py`) : métier, ville, quartier et années
+  d'expérience ne sont obligatoires **que** pour un compte prestataire ; un
+  client s'inscrit donc avec son seul email/téléphone (validation dans `clean()`).
+  `static/js/auth-forms.js` applique la même règle en direct selon le rôle
+  sélectionné.
+- **Application** : nouvelle propriété `profile_completed` (modèle `Prestataire`
+  → `UserSerializer`) : prestataire → métier + ville + quartier ; client →
+  prénom + nom. Après la vérification du code, l'app ouvre
+  `ProfileEditScreen(onboarding: true)` (`lib/screens/profile/profile_edit_screen.dart`)
+  pour un prestataire : bannière d'accueil, titre « Configurez votre profil »,
+  bouton « Terminer », champs indispensables validés. Une fois le profil
+  complété, la racine affiche l'interface principale (`MainShell`).
+
+### 8.5 Tests
+
+- `python manage.py test` → **42 tests OK** :
+  - `api` : 33 tests (dont 3 nouveaux : connexion immédiate après vérification,
+    absence de jetons pour un compte déjà vérifié, `profile_completed`) ;
+  - `main` : 9 tests (nouveaux) — inscription client/prestataire, connexion
+    automatique + redirection par rôle, code invalide, accès à la page profil,
+    et redirections de connexion.
+- Parcours vérifiés de bout en bout sur le serveur de développement
+  (`curl`) : inscription client → code → `/client/dashboard/` ; inscription
+  prestataire (refusée sans métier/ville/quartier) → code → `/profile/` ;
+  `POST /api/auth/verify-email/` → jetons + `profile_completed`
+  (`true` pour un client, `false` pour un prestataire, qui sera donc envoyé
+  vers la configuration de son profil).
+- `Core/settings.py` : le stockage de fichiers statiques avec manifeste
+  (`CompressedManifestStaticFilesStorage`) n'est plus actif qu'hors `DEBUG`,
+  afin qu'un `collectstatic` oublié ne fasse plus échouer le rendu des pages en
+  développement et pendant les tests.

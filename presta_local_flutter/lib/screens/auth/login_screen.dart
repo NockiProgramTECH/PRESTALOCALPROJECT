@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/api_client.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/brand_mark.dart';
+import '../profile/profile_edit_screen.dart';
 import 'password_reset_screen.dart';
 
 /// Écran de connexion (maquette « connexion_lesprodufao »).
@@ -53,10 +56,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-    if (mounted &&
-        ref.read(authProvider).status == AuthStatus.authenticated &&
-        Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
+    if (!mounted || ref.read(authProvider).status != AuthStatus.authenticated) {
+      return;
+    }
+
+    final navigator = Navigator.of(context);
+    final user = ref.read(authServiceProvider).currentUser;
+
+    // L'écran racine (AuthGate) affiche désormais l'interface connectée ;
+    // on dépile les écrans d'authentification empilés par-dessus pour que le
+    // changement soit visible tout de suite (sans quoi la page reste figée
+    // sur le formulaire de connexion).
+    navigator.popUntil((route) => route.isFirst);
+
+    // Un prestataire dont le profil est incomplet ne peut pas être trouvé par
+    // les clients : on l'amène directement à la configuration de son profil.
+    if (user != null && user.isProvider && !user.profileCompleted) {
+      await navigator.push(
+        MaterialPageRoute(
+          builder: (_) => const ProfileEditScreen(onboarding: true),
+        ),
+      );
     }
   }
 
@@ -615,7 +635,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           style: TextStyle(fontSize: 14, color: AppTheme.navy),
         ),
         GestureDetector(
-          onTap: () => Navigator.of(context).pushReplacement(
+          // `push` (et non `pushReplacement`) : après une inscription, l'écran
+          // d'inscription est dépilé jusqu'à la racine et l'utilisateur est
+          // connecté ; le retour simple ramène donc au formulaire de connexion.
+          onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const RegisterScreen()),
           ),
           child: const Row(
@@ -664,6 +687,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _codeController = TextEditingController();
 
   bool _asProvider = false;
+  /// Mot de passe saisi à l'étape 1 : il sert à connecter l'utilisateur
+  /// automatiquement dès que le code email est validé.
+  String? _pendingPassword;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _hasIdDocument = false;
@@ -706,6 +732,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final parts = _fullNameController.text.trim().split(RegExp(r'\s+'));
     final firstName = parts.first;
     final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : parts.first;
+    // Conservé pour la connexion automatique après vérification du code.
+    _pendingPassword = _passwordController.text;
     try {
       await ref
           .read(authProvider.notifier)
@@ -741,21 +769,65 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _error = null;
     });
     try {
-      await ref
-          .read(authProvider.notifier)
-          .verifyEmail(
-            email: _emailController.text.trim(),
-            code: _codeController.text.trim(),
-          );
+      // La vérification du code active le compte **et** connecte
+      // l'utilisateur (l'API renvoie les jetons JWT) : plus besoin de le
+      // renvoyer vers l'écran de connexion.
+      AuthUser user;
+      try {
+        user = await ref
+            .read(authProvider.notifier)
+            .verifyEmailAndLogin(
+              email: _emailController.text.trim(),
+              code: _codeController.text.trim(),
+            );
+      } on ApiException catch (error) {
+        // Repli pour un backend qui n'activerait le compte qu'en renvoyant un
+        // simple message (sans jetons) : on se connecte avec les identifiants
+        // saisis à l'étape 1. Les autres erreurs (code invalide…) remontent.
+        final password = _pendingPassword;
+        if (password == null ||
+            !error.message.contains('Connexion automatique impossible')) {
+          rethrow;
+        }
+        await ref.read(authProvider.notifier).login(
+              email: _emailController.text.trim(),
+              password: password,
+            );
+        final connected = ref.read(authServiceProvider).currentUser;
+        if (ref.read(authProvider).status != AuthStatus.authenticated ||
+            connected == null) {
+          rethrow;
+        }
+        user = connected;
+      }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email vérifié. Connectez-vous maintenant.'),
+
+      final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+
+      // Retour à la racine : AuthGate affiche l'interface connectée.
+      navigator.popUntil((route) => route.isFirst);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            user.isProvider
+                ? 'Compte créé ! Dernière étape : configurez votre profil.'
+                : 'Email vérifié. Bienvenue sur LesProduFao !',
+          ),
         ),
       );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+
+      // Le mot de passe n'a plus besoin de rester en mémoire.
+      _pendingPassword = null;
+
+      // Un prestataire doit configurer son profil pour être visible.
+      if (user.isProvider) {
+        await navigator.push(
+          MaterialPageRoute(
+            builder: (_) => const ProfileEditScreen(onboarding: true),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -763,6 +835,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _error = _friendlyError(e);
       });
     }
+  }
+
+  /// Revient à l'écran de connexion : on dépile l'inscription si elle a été
+  /// ouverte depuis la connexion, sinon on la pousse.
+  void _backToLogin() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    navigator.push(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
   }
 
   String _friendlyError(Object e) {
@@ -1115,9 +1200,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             style: TextStyle(fontSize: 14, color: AppTheme.navy),
           ),
           GestureDetector(
-            onTap: () => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            ),
+            onTap: _backToLogin,
             child: const Text(
               'Se connecter',
               style: TextStyle(

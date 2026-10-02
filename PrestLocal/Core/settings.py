@@ -207,7 +207,15 @@ STORAGES = {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        # Le manifeste (empreintes + compression) n'est activé qu'en
+        # production, une fois `collectstatic` exécuté. En développement et
+        # pendant les tests, il provoquerait « Missing staticfiles manifest
+        # entry » dès qu'un fichier récent n'a pas encore été collecté.
+        'BACKEND': (
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+            if DEBUG
+            else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        ),
     },
 }
 

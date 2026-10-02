@@ -19,6 +19,9 @@ class AuthUser {
   final int anneeExperience;
   final String? quartier;
   final bool isAvailable;
+  /// Vrai quand les informations indispensables au rôle sont renseignées
+  /// (prestataire : métier + ville + quartier ; client : prénom + nom).
+  final bool profileCompleted;
 
   const AuthUser({
     required this.id,
@@ -36,6 +39,7 @@ class AuthUser {
     this.anneeExperience = 0,
     this.quartier,
     this.isAvailable = true,
+    this.profileCompleted = false,
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -59,6 +63,7 @@ class AuthUser {
           json['annee_experience'] is int ? json['annee_experience'] as int : 0,
       quartier: json['quartier']?.toString(),
       isAvailable: json['is_available'] == true,
+      profileCompleted: json['profile_completed'] == true,
     );
   }
 }
@@ -273,14 +278,40 @@ class AuthService {
   }
 
   /// Vérifie l'email avec le code reçu pour activer le compte.
-  Future<void> verifyEmail({
+  ///
+  /// Le backend connecte l'utilisateur immédiatement : la réponse contient
+  /// les jetons JWT et le profil. Ils sont enregistrés ici, ce qui évite de
+  /// redemander les identifiants juste après l'inscription.
+  ///
+  /// Retourne l'utilisateur authentifié.
+  Future<AuthUser> verifyEmail({
     required String email,
     required String code,
   }) async {
-    await _api.post(
+    final data = await _api.post(
       '/api/auth/verify-email/',
       body: {'email': email.trim(), 'code': code.trim()},
       authenticated: false,
     );
+    final access = data['access'] as String?;
+    final refresh = data['refresh'] as String?;
+    if (access == null || refresh == null) {
+      // Réponse d'un ancien backend (simple message) : on ne peut pas
+      // connecter automatiquement, l'appelant devra se rabattre sur le login.
+      throw ApiException(
+        "Connexion automatique impossible : vérifiez votre email puis connectez-vous.",
+      );
+    }
+    await _api.saveTokens(access: access, refresh: refresh);
+
+    final userJson = data['user'];
+    if (userJson is Map) {
+      _currentUser = AuthUser.fromJson(userJson.cast<String, dynamic>());
+      return _currentUser!;
+    }
+    // Repli : le profil n'était pas dans la réponse, on le récupère.
+    final user = await fetchProfile();
+    _currentUser = user;
+    return user;
   }
 }

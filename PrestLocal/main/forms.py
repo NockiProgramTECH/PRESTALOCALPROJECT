@@ -103,6 +103,13 @@ class PrestataireSignupForm(UserCreationForm):
         new_fields.update(self.fields)
         self.fields = new_fields
         
+        # Champs spécifiques au métier : obligatoires uniquement pour un
+        # compte prestataire (un client n'a rien à faire d'un métier ni d'un
+        # quartier d'intervention). La règle est réappliquée dans clean().
+        for name in ('metier', 'annee_experience', 'ville', 'quartier'):
+            if name in self.fields:
+                self.fields[name].required = False
+
         # Application des classes CSS aux champs hérités (mots de passe)
         if 'password1' in self.fields:
             self.fields['password1'].widget.attrs.update({'class': 'form-input col-half', 'placeholder': 'Mot de passe'})
@@ -114,6 +121,22 @@ class PrestataireSignupForm(UserCreationForm):
         if Prestataire.objects.filter(email=email).exists():
             raise forms.ValidationError(_("Cette adresse email est déjà utilisée."))
         return email
+
+    def clean(self):
+        """Un prestataire doit renseigner son métier et sa zone d'intervention."""
+        cleaned = super().clean()
+        if cleaned.get('role') != Prestataire.ROLE_PRESTATAIRE:
+            return cleaned
+
+        for name in ('metier', 'ville', 'quartier'):
+            if not cleaned.get(name):
+                self.add_error(
+                    name,
+                    _("Ce champ est obligatoire pour un compte prestataire."),
+                )
+        if cleaned.get('annee_experience') is None:
+            cleaned['annee_experience'] = 0
+        return cleaned
 
 class PrestataireLoginForm(AuthenticationForm):
     """
