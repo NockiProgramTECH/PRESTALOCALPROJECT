@@ -119,7 +119,8 @@ def add_realisation(request):
             'realisation': {
                 'id': realisation.id,
                 'titre': realisation.titre,
-                'image_url': realisation.image.url
+                # `image` est désormais facultative (publications texte seul).
+                'image_url': realisation.image.url if realisation.image else None
             }
         })
     else:

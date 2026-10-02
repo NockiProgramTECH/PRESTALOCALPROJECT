@@ -9,20 +9,27 @@ import '../../providers/app_state_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../utils/feed_actions.dart';
+import 'feed_composer_sheet.dart';
 
-/// Page détail d'une réalisation.
+/// Page détail d'une publication.
 ///
-/// Affiche l'image, l'auteur (tapable vers son profil), le titre, un bouton
-/// like, et la liste des commentaires avec tri (plus récents / plus anciens).
-/// Une zone de saisie en bas permet d'ajouter un commentaire (style Facebook).
+/// Affiche l'auteur (tapable vers sa fiche), le texte complet, les médias
+/// (galerie si plusieurs images), le lien, puis les **vraies** interactions :
+/// J'aime, commentaires (chargés depuis l'API) et partage. L'auteur peut
+/// modifier ou supprimer sa publication ; cette page renvoie alors `true`
+/// au fil pour qu'il rafraîchisse la carte.
 class FeedDetailScreen extends ConsumerStatefulWidget {
   final String realisationId;
   final ValueChanged<String>? onProviderTap;
+  /// Ouvre la page avec le champ de commentaire déjà focalisé.
+  final bool focusComment;
 
   const FeedDetailScreen({
     super.key,
     required this.realisationId,
     this.onProviderTap,
+    this.focusComment = false,
   });
 
   @override
@@ -44,14 +51,14 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
   List<FeedCommentModel> _comments = const [];
   bool _newestFirst = true;
   bool _sending = false;
-
-  /// Le champ de saisie est-il focalisé (clavier ouvert) ?
   bool _focused = false;
+  /// Vrai si la publication a été modifiée ou supprimée : le fil doit se
+  /// rafraîchir au retour.
+  bool _modifie = false;
 
   @override
   void initState() {
     super.initState();
-    // Agrandit le champ (largeur + hauteur) dès qu'on commence à écrire.
     _commentFocus.addListener(() {
       if (mounted && _focused != _commentFocus.hasFocus) {
         setState(() => _focused = _commentFocus.hasFocus);
@@ -74,20 +81,33 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
       _error = null;
     });
     try {
-      final post = await ref
-          .read(feedServiceProvider)
-          .getDetail(widget.realisationId);
+      final service = ref.read(feedServiceProvider);
+      final post = await service.getDetail(widget.realisationId);
+      // Commentaires réels (endpoint dédié) : source unique de vérité.
+      List<FeedCommentModel> commentaires;
+      try {
+        commentaires = await service.getComments(widget.realisationId);
+      } catch (_) {
+        commentaires = post.comments;
+      }
       if (!mounted) return;
       setState(() {
         _post = post;
         _liked = post.isLiked;
         _likeCount = post.likeCount;
-        _commentCount = post.commentCount;
-        // Le backend renvoie les commentaires du plus récent au plus ancien.
-        _comments = List.of(post.comments);
+        _commentCount = commentaires.isNotEmpty
+            ? commentaires.length
+            : post.commentCount;
+        _comments = commentaires;
         _loading = false;
       });
-    } catch (e) {
+      if (widget.focusComment) {
+        // Laisse la page se poser avant d'ouvrir le clavier.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _commentFocus.requestFocus();
+        });
+      }
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -96,7 +116,6 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     }
   }
 
-  /// Vrai si l'utilisateur est connecté (les likes/commentaires l'exigent).
   bool _requireLogin(String action) {
     if (ref.read(authProvider).status == AuthStatus.authenticated) return true;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -108,7 +127,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
   Future<void> _toggleLike() async {
     final post = _post;
     if (post == null) return;
-    if (!_requireLogin('aimer une réalisation')) return;
+    if (!_requireLogin('aimer une publication')) return;
     try {
       final result = await ref.read(feedServiceProvider).toggleLike(post.id);
       if (!mounted) return;
@@ -128,7 +147,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     final post = _post;
     final text = _commentController.text.trim();
     if (post == null || text.isEmpty || _sending) return;
-    if (!_requireLogin('commenter une réalisation')) return;
+    if (!_requireLogin('commenter une publication')) return;
     setState(() => _sending = true);
     try {
       final result = await ref
@@ -139,9 +158,9 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
         _comments = [result.comment, ..._comments];
         _commentCount = result.commentCount;
         _sending = false;
+        _modifie = true;
       });
       _commentController.clear();
-      // Remonte vers le haut pour voir le nouveau commentaire (si tri récents).
       if (_newestFirst && _scrollController.hasClients) {
         _scrollController.animateTo(
           0,
@@ -158,29 +177,117 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     }
   }
 
+  Future<void> _partager() async {
+    final post = _post;
+    if (post == null) return;
+    await FeedActions.sharePost(context, post);
+  }
+
+  Future<void> _modifier() async {
+    final post = _post;
+    if (post == null) return;
+    final ok = await showFeedComposerSheet(context, edition: post);
+    if (ok == true) {
+      _modifie = true;
+      await _load();
+    }
+  }
+
+  Future<void> _supprimer() async {
+    final post = _post;
+    if (post == null) return;
+    final confirme = await FeedActions.confirmDelete(context);
+    if (!confirme) return;
+    try {
+      final ok = await ref.read(feedServiceProvider).delete(post.id);
+      if (!ok) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Suppression impossible')));
+        return;
+      }
+      ref.invalidate(feedPostsProvider);
+      ref.invalidate(myFeedPostsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Publication supprimée')),
+      );
+      Navigator.of(context).pop(true);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppConstants.errorNetwork)));
+    }
+  }
+
+  Future<void> _ouvrirImage(String url) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.surfaceLight,
-      appBar: AppBar(title: const Text('Réalisation'), elevation: 0),
-      // La zone de saisie est dans le body : quand le clavier s'ouvre, le
-      // keyboard inset resserre la Column et l'Expanded, donc l'entrée reste
-      // visible au-dessus du clavier (au lieu d'être masquée).
-      body: _post == null
-          ? _buildBody()
-          : Column(
-              children: [
-                Expanded(child: _buildBody()),
-                _buildCommentInput(),
-              ],
-            ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        Navigator.of(context).pop(_modifie);
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvas,
+        appBar: AppBar(
+          title: const Text('Publication'),
+          actions: [
+            if (_post?.canEdit == true)
+              IconButton(
+                onPressed: _modifier,
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Modifier',
+              ),
+            if (_post?.canDelete == true)
+              IconButton(
+                onPressed: _supprimer,
+                icon: const Icon(Icons.delete_outline_rounded),
+                tooltip: 'Supprimer',
+              ),
+          ],
+        ),
+        body: _post == null
+            ? _buildBody()
+            : Column(
+                children: [
+                  Expanded(child: _buildBody()),
+                  _buildCommentInput(),
+                ],
+              ),
+      ),
     );
   }
 
   Widget _buildBody() {
-    if (_loading) {
-      return const _DetailShimmer();
-    }
+    if (_loading) return const _DetailShimmer();
     if (_error != null || _post == null) {
       return EmptyState.error(message: _error, onRetry: _load);
     }
@@ -191,205 +298,318 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
       controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 16),
       children: [
-        // ---- Grande image ----
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: post.imageUrl.isEmpty
-              ? Container(
-                  color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    size: 48,
-                    color: AppTheme.primaryGreen.withValues(alpha: 0.4),
-                  ),
-                )
-              : CachedNetworkImage(
-                  imageUrl: post.imageUrl,
-                  fit: BoxFit.cover,
-                  fadeInDuration: const Duration(milliseconds: 250),
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey.shade200,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey.shade200,
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: Colors.grey.shade400,
-                      size: 48,
-                    ),
-                  ),
-                ),
-        ),
-
-        // ---- Auteur (tapable → profil prestataire) ----
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: InkWell(
-            onTap: widget.onProviderTap == null
-                ? null
-                : () => widget.onProviderTap?.call(post.author.id),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppTheme.primaryGreen.withValues(
-                      alpha: 0.15,
-                    ),
-                    backgroundImage: post.author.avatar.isEmpty
-                        ? null
-                        : CachedNetworkImageProvider(post.author.avatar),
-                    child: post.author.avatar.isEmpty
-                        ? Icon(Icons.person, color: AppTheme.primaryGreen)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        // ---- Auteur ----
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppTheme.primarySoft,
+                backgroundImage: post.author.avatar.isEmpty
+                    ? null
+                    : CachedNetworkImageProvider(post.author.avatar),
+                child: post.author.avatar.isEmpty
+                    ? const Icon(Icons.person, color: AppTheme.primary)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                post.author.fullName.isNotEmpty
-                                    ? post.author.fullName
-                                    : 'Prestataire',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                            if (post.author.isVerified) ...[
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.verified_rounded,
-                                size: 16,
-                                color: AppTheme.primaryGreen,
-                              ),
-                            ],
-                          ],
-                        ),
-                        if (post.author.metier.isNotEmpty)
-                          Text(
-                            post.author.metier,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
+                        Flexible(
+                          child: Text(
+                            post.author.fullName.isNotEmpty
+                                ? post.author.fullName
+                                : 'Prestataire',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.navy,
                             ),
                           ),
-                        // Publication visible, mais auteur non contactable
-                        // faute d'abonnement actif.
-                        if (!post.author.contactDisponible) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF7ED),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: const Color(0xFFFED7AA),
-                              ),
-                            ),
-                            child: const Text(
-                              'Non contactable — abonnement inactif',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.primaryPressed,
-                              ),
-                            ),
+                        ),
+                        if (post.author.isVerified) ...[
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.verified_rounded,
+                            size: 16,
+                            color: AppTheme.success,
                           ),
                         ],
                       ],
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.grey.shade400,
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (post.author.metier.isNotEmpty) post.author.metier,
+                        if (post.author.ville.isNotEmpty) post.author.ville,
+                        formatFeedTime(post.date),
+                      ].join(' · '),
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                    if (!post.author.contactDisponible) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: const Color(0xFFFED7AA)),
+                        ),
+                        child: const Text(
+                          'Non contactable — abonnement inactif',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryPressed,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
+              if (widget.onProviderTap != null && post.author.id.isNotEmpty)
+                TextButton(
+                  onPressed: () => widget.onProviderTap!(post.author.id),
+                  child: const Text('Voir la fiche'),
+                ),
+            ],
           ),
         ),
 
-        // ---- Titre ----
-        if (post.title.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Text(
-              post.title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-                height: 1.3,
+        // ---- Texte complet ----
+        if (post.text.trim().isNotEmpty)
+          Container(
+            color: Colors.white,
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  post.text,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    height: 1.4,
+                    color: AppTheme.navy,
+                  ),
+                ),
+                if (post.modifieLe != null)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Publication modifiée',
+                      style: TextStyle(fontSize: 11.5, color: AppTheme.muted),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+        // ---- Médias ----
+        if (post.images.isNotEmpty)
+          _GalerieImages(urls: post.images, onTap: _ouvrirImage),
+        if (post.videoUrl.isNotEmpty)
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: GestureDetector(
+              onTap: () => FeedActions.openExternal(
+                context,
+                post.videoUrl,
+                errorMessage: 'Lecture vidéo impossible sur cet appareil',
+              ),
+              child: Container(
+                color: const Color(0xFF0F172A),
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.play_circle_fill_rounded,
+                        size: 62,
+                        color: Colors.white,
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Lire la vidéo',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
 
-        // ---- Actions : like + compteur ----
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-          child: Row(
+        // ---- Catégorie + lien ----
+        if (post.categorieNom.isNotEmpty || post.lien.isNotEmpty)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (post.categorieNom.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primarySoft,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      post.categorieNom,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryPressed,
+                      ),
+                    ),
+                  ),
+                if (post.lien.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: post.categorieNom.isNotEmpty ? 10 : 0,
+                    ),
+                    child: InkWell(
+                      onTap: () => FeedActions.openExternal(context, post.lien),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.inputFill,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.link_rounded,
+                              color: AppTheme.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                feedLinkHost(post.lien),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.navy,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.open_in_new_rounded,
+                              size: 16,
+                              color: AppTheme.muted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+        // ---- Compteurs + actions ----
+        Container(
+          color: Colors.white,
+          margin: const EdgeInsets.only(top: 8),
+          child: Column(
             children: [
-              IconButton(
-                onPressed: _toggleLike,
-                icon: Icon(
-                  _liked
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  color: _liked ? Colors.redAccent : Colors.grey.shade500,
-                  size: 26,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.favorite_rounded,
+                      size: 16,
+                      color: AppTheme.danger,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '$_likeCount',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Icon(
+                      Icons.mode_comment_rounded,
+                      size: 16,
+                      color: AppTheme.muted,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '$_commentCount',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                  ],
                 ),
-                tooltip: 'J\'aime',
               ),
-              Text(
-                '$_likeCount',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Icon(
-                Icons.comment_rounded,
-                size: 24,
-                color: Colors.grey.shade500,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$_commentCount',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+              const Divider(height: 1),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ActionDetail(
+                      icon: _liked
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      label: "J'aime",
+                      active: _liked,
+                      onTap: _toggleLike,
+                    ),
+                  ),
+                  Expanded(
+                    child: _ActionDetail(
+                      icon: Icons.mode_comment_outlined,
+                      label: 'Commenter',
+                      onTap: () => _commentFocus.requestFocus(),
+                    ),
+                  ),
+                  Expanded(
+                    child: _ActionDetail(
+                      icon: Icons.share_outlined,
+                      label: 'Partager',
+                      onTap: _partager,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
 
-        const Divider(height: 24),
-
-        // ---- En-tête commentaires + tri ----
+        // ---- Commentaires ----
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -398,52 +618,46 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black87,
+                  color: AppTheme.navy,
                 ),
               ),
-              TextButton.icon(
-                onPressed: () => setState(() => _newestFirst = !_newestFirst),
-                icon: Icon(
-                  _newestFirst
-                      ? Icons.arrow_downward_rounded
-                      : Icons.arrow_upward_rounded,
-                  size: 16,
+              if (_comments.length > 1)
+                TextButton.icon(
+                  onPressed: () => setState(() => _newestFirst = !_newestFirst),
+                  icon: Icon(
+                    _newestFirst
+                        ? Icons.arrow_downward_rounded
+                        : Icons.arrow_upward_rounded,
+                    size: 16,
+                  ),
+                  label: Text(_newestFirst ? 'Plus récents' : 'Plus anciens'),
                 ),
-                label: Text(_newestFirst ? 'Plus récents' : 'Plus anciens'),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-              ),
             ],
           ),
         ),
-
-        // ---- Commentaires ----
         if (displayed.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(24),
+          const Padding(
+            padding: EdgeInsets.all(24),
             child: Text(
               'Aucun commentaire pour le moment. Soyez le premier !',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              style: TextStyle(color: AppTheme.muted, fontSize: 13),
             ),
           )
         else
-          ...displayed.map((c) => _CommentTile(comment: c)),
+          ...displayed.map(
+            (c) => _CommentTile(comment: c, postAuthorId: post.author.id),
+          ),
       ],
     );
   }
 
-  /// Zone de saisie de commentaire en bas (style Facebook).
-  ///
-  /// Compacte au repos ; s'élargit et gagne en hauteur **dès que l'on commence
-  /// à écrire** (focus → [AnimatedContainer] + `minLines`/`maxLines`).
+  /// Zone de saisie de commentaire (s'agrandit au focus).
   Widget _buildCommentInput() {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       padding: EdgeInsets.symmetric(
-        // Moins de marges quand focalisé → champ plus large.
         horizontal: _focused ? 8 : 16,
         vertical: 8,
       ),
@@ -469,14 +683,13 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                 enabled: !_sending,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _sendComment(),
-                minLines: _focused ? 3 : 1,
-                maxLines: _focused ? 6 : 2,
-                style: const TextStyle(fontSize: 16, height: 1.3),
+                minLines: _focused ? 2 : 1,
+                maxLines: _focused ? 5 : 2,
+                style: const TextStyle(fontSize: 15.5, height: 1.3),
                 decoration: InputDecoration(
                   hintText: 'Ajouter un commentaire…',
-                  hintStyle: TextStyle(color: Colors.grey.shade400),
                   filled: true,
-                  fillColor: AppTheme.surfaceLight,
+                  fillColor: AppTheme.canvas,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: _focused ? 14 : 10,
@@ -498,7 +711,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.send_rounded),
-              color: AppTheme.primaryGreen,
+              color: AppTheme.primary,
               tooltip: 'Envoyer',
             ),
           ],
@@ -508,52 +721,226 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
   }
 }
 
-/// Carte d'un commentaire.
-class _CommentTile extends StatelessWidget {
-  final FeedCommentModel comment;
+/// Galerie d'images : défilement horizontal si plusieurs photos.
+class _GalerieImages extends StatefulWidget {
+  final List<String> urls;
+  final ValueChanged<String> onTap;
 
-  const _CommentTile({required this.comment});
+  const _GalerieImages({required this.urls, required this.onTap});
+
+  @override
+  State<_GalerieImages> createState() => _GalerieImagesState();
+}
+
+class _GalerieImagesState extends State<_GalerieImages> {
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
+    if (widget.urls.length == 1) {
+      return AspectRatio(
+        aspectRatio: 4 / 3,
+        child: GestureDetector(
+          onTap: () => widget.onTap(widget.urls.first),
+          child: CachedNetworkImage(
+            imageUrl: widget.urls.first,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => Container(color: AppTheme.inputFill),
+            errorWidget: (_, __, ___) => Container(
+              color: AppTheme.inputFill,
+              child: const Icon(
+                Icons.broken_image_outlined,
+                color: AppTheme.muted,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return Stack(
+      children: [
+        SizedBox(
+          height: 320,
+          child: PageView.builder(
+            itemCount: widget.urls.length,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (context, index) => GestureDetector(
+              onTap: () => widget.onTap(widget.urls[index]),
+              child: CachedNetworkImage(
+                imageUrl: widget.urls[index],
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(color: AppTheme.inputFill),
+                errorWidget: (_, __, ___) => Container(
+                  color: AppTheme.inputFill,
+                  child: const Icon(
+                    Icons.broken_image_outlined,
+                    color: AppTheme.muted,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 10,
+          right: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '${_index + 1}/${widget.urls.length}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bouton de la barre d'actions du détail.
+class _ActionDetail extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback? onTap;
+
+  const _ActionDetail({
+    required this.icon,
+    required this.label,
+    this.active = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final couleur = active ? AppTheme.primary : AppTheme.navy;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 19, color: couleur),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: couleur,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Carte d'un commentaire (photo, nom, date, badge auteur).
+class _CommentTile extends StatelessWidget {
+  final FeedCommentModel comment;
+  /// Identifiant de l'auteur de la publication : sert au badge « Auteur ».
+  final String postAuthorId;
+
+  const _CommentTile({required this.comment, required this.postAuthorId});
+
+  @override
+  Widget build(BuildContext context) {
+    final photo = comment.userPhoto;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 16,
-            backgroundColor: AppTheme.primaryGreen.withValues(alpha: 0.12),
-            child: Icon(Icons.person, size: 18, color: AppTheme.primaryGreen),
+            radius: 17,
+            backgroundColor: AppTheme.primarySoft,
+            backgroundImage: photo.isEmpty
+                ? null
+                : CachedNetworkImageProvider(photo),
+            child: photo.isEmpty
+                ? const Icon(Icons.person, size: 17, color: AppTheme.primary)
+                : null,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    comment.userName,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          comment.userName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.navy,
+                          ),
+                        ),
+                      ),
+                      if (comment.userId.isNotEmpty &&
+                          comment.userId == postAuthorId) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primarySoft,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'Auteur',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryPressed,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(
                     comment.contenu,
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Colors.black87,
+                      color: AppTheme.navy,
                       height: 1.3,
                     ),
                   ),
+                  if (comment.date.millisecondsSinceEpoch != 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      formatFeedTime(comment.date),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -2427,6 +2427,15 @@ footer {
     line-height: 1.45;
 }
 
+/* Texte de la publication (publications sans image) */
+.feed-card__text {
+    padding: 4px 16px 12px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-dark);
+    white-space: pre-line;
+}
+
 /* Ligne like + commentaire */
 .feed-card__actions {
     display: flex;

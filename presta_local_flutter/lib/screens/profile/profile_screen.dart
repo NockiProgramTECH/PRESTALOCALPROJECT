@@ -17,7 +17,7 @@ import '../../widgets/badges.dart';
 import '../../widgets/rating_display.dart';
 import '../auth/password_reset_screen.dart';
 import '../favorites/favorites_screen.dart';
-import '../feed/feed_create_screen.dart';
+import '../feed/feed_composer_sheet.dart';
 import '../messages/chat_screen.dart';
 import '../auth/login_screen.dart';
 import 'profile_edit_screen.dart';
@@ -2362,11 +2362,9 @@ class _PortfolioSection extends ConsumerWidget {
               // (largeur non bornée) ça crash. On surcharge en taille compacte.
               ElevatedButton.icon(
                 onPressed: () async {
-                  final created = await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const FeedCreateScreen(),
-                    ),
-                  );
+                  // Même panneau de rédaction que le fil d'actualité
+                  // (texte et/ou plusieurs photos, vidéo, lien, catégorie).
+                  final created = await showFeedComposerSheet(context);
                   if (created == true) {
                     ref.invalidate(myFeedPostsProvider);
                     ref.invalidate(feedPostsProvider);
@@ -2430,7 +2428,25 @@ class _PortfolioSection extends ConsumerWidget {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: CachedNetworkImage(
+                        child: post.imageUrl.isEmpty
+                            ? Container(
+                                color: AppTheme.inputFill,
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.all(8),
+                                child: Text(
+                                  post.text.isEmpty
+                                      ? 'Publication'
+                                      : post.text,
+                                  maxLines: 4,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.navy,
+                                  ),
+                                ),
+                              )
+                            : CachedNetworkImage(
                           imageUrl: post.imageUrl,
                           fit: BoxFit.cover,
                           placeholder: (_, __) => Container(

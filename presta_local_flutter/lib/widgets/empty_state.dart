@@ -12,6 +12,8 @@ class EmptyState extends StatelessWidget {
   final String? subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
+  /// Icône du bouton d'action (« Réessayer » par défaut).
+  final IconData actionIcon;
   final bool isSearch;
 
   const EmptyState({
@@ -21,6 +23,7 @@ class EmptyState extends StatelessWidget {
     this.subtitle,
     this.actionLabel,
     this.onAction,
+    this.actionIcon = Icons.refresh_rounded,
     this.isSearch = false,
   });
 
@@ -91,7 +94,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.refresh_rounded),
+                icon: Icon(actionIcon),
                 label: Text(actionLabel!),
               ),
             ],

@@ -528,3 +528,140 @@ indépendamment de l'écran d'où l'utilisateur se connecte :
   → absent de la liste, fiche consultable avec `contact_disponible = false`,
   téléphone/email `null` ; `?include_all=1` → présent mais toujours masqué ;
   après souscription → présent dans la liste (9 au total).
+
+---
+
+## 11. Fil d'actualité de l'Accueil (refonte « réseau social »)
+
+Objectif : que la section **Accueil / fil d'actualité** se comporte et se
+présente comme un fil d'actualité moderne (création en haut, cartes, J'aime /
+Commenter / Partager, défilement infini), en orange/blanc/gris et **sans
+reprendre le logo ni l'identité graphique de Facebook**.
+
+### 11.1 Zone de création en haut du fil
+
+- `lib/screens/feed/feed_composer_sheet.dart` (nouveau) : panneau modal
+  « Créer une publication » — photo de profil, nom, audience « Publique »,
+  champ multiligne « Quoi de neuf dans votre activité ? », barre d'outils
+  **Photos / Vidéo / Catégorie**, champ **Lien externe**, aperçu des fichiers
+  avec bouton de retrait, bouton **Publier** (état « Envoi en cours… »).
+- Le clic sur le champ « Quoi de neuf ? » de l'accueil (`_FeedSection`) ou de
+  la page « Fil d'actualité » ouvre ce panneau : la rédaction se fait dans une
+  interface confortable, jamais dans un champ d'une ligne.
+- Fermeture : bouton ✕ ou geste ; si un brouillon existe, une confirmation
+  « Abandonner la publication ? » évite la perte de contenu.
+
+### 11.2 Gestion du contenu et validation
+
+- Contenu : texte seul, une ou plusieurs images, vidéo, lien, catégorie —
+  et toutes les combinaisons (texte + médias, catégorie seule, etc.).
+- Validation **côté application** (`feed_composer_sheet.dart`) *et* **côté
+  backend** (`api/serializers.py`) : mêmes limites des deux côtés —
+  **10 images maximum**, **5 Mo par image** (JPG/JPEG/PNG/WEBP), **50 Mo pour
+  la vidéo** (MP4/MOV/M4V/WEBM), publication vide refusée.
+- L'application affiche l'erreur exacte renvoyée par l'API dans un encart
+  rouge ; la publication **n'est annoncée comme enregistrée que si la requête
+  a réussi** (le message de succès est émis après la réponse 2xx, jamais
+  avant). Un échec réseau laisse le panneau ouvert avec le brouillon intact.
+- Modification : menu ⋯ → « Modifier » rouvre le même panneau en mode édition
+  (titre, texte, lien, catégorie) ; la catégorie peut aussi être retirée
+  (`PATCH {"categorie": null}`).
+
+### 11.3 Carte de publication et interactions
+
+- `lib/widgets/feed_card.dart` : carte blanche à coins arrondis — en-tête
+  (photo, nom + badge Vérifié, `métier · ville · date relative`), texte
+  complet (« Voir plus / Voir moins » au-delà de 220 caractères), médias
+  (image seule, paire, grille 2×2 avec pastille « +N », vidéo jouable),
+  pastille de catégorie, aperçu du lien externe, compteurs réels puis barre
+  d'actions **J'aime / Commenter / Partager**.
+- `lib/widgets/feed_interactive_card.dart` (nouveau) : carte branchée sur
+  l'API (J'aime avec compte à rebours réel, partage, modification,
+  suppression) — l'accueil et la page complète utilisent le **même** widget,
+  donc les mêmes comportements.
+- J'aime : `POST /api/feed/<id>/like/` renvoie `{liked, like_count}` ; le
+  compteur affiché est celui du serveur.
+- Commenter : ouvre le détail avec la zone de saisie déjà focalisée.
+- Partager : feuille « Copier le lien / Partager via WhatsApp / Ouvrir la
+  fiche du prestataire » (`lib/utils/feed_actions.dart`, `url_launcher`).
+- Permissions : menu **Modifier / Supprimer** uniquement si `can_edit` /
+  `can_delete` (l'auteur, ou un rôle de modération) ; les autres comptes ne
+  voient aucune action de gestion. Suppression confirmée par une boîte de
+  dialogue, puis retrait de la carte.
+
+### 11.4 Organisation du fil
+
+- Tri du plus récent au plus ancien (backend `-date_ajout`), **pagination de
+  10 publications** avec **défilement infini** (préchargement 400 px avant la
+  fin, anti-doublons par identifiant, plafond serveur `page_size ≤ 50`).
+- États gérés : chargement initial (squelettes), **état vide** « Aucune
+  publication pour le moment » avec bouton **Publier une actualité**, **état
+  d'erreur** avec bouton **Réessayer**, tirer-pour-rafraîchir, pied de liste
+  « Vous êtes à jour », indicateur de chargement de la page suivante.
+- Après publication ou modification, le fil et le portfolio sont
+  rechargés depuis le backend (`invalidate` des providers).
+
+### 11.5 Identité visuelle
+
+Orange `#FF8A3D` pour toutes les actions (Publier, J'aime, liens, icônes de
+la barre d'outils), cartes blanches, fond sable/gris clair `#FBF9F7`, textes
+secondaires gris ardoise `#64748B`, titres navy quasi noir, coins arrondis
+(18 px), séparateurs `#EAE3DB`, écarts réguliers (12/14 px), aucun élément
+propriétaire ni logo tiers.
+
+### 11.6 Contrat d'API utilisé
+
+- `GET /api/feed/` (public) : `count`, `next`, `results[]` —
+  `id, titre, contenu, lien, categorie, categorie_nom, images[], image,
+  video_url, date_ajout, modifie_le, prestataire{…}, like_count,
+  comment_count, is_liked, can_edit, can_delete` ; filtres `mine`,
+  `prestataire`, `categorie`, `search`, `page`, `page_size`.
+- `POST /api/feed/` (multipart, authentifié) : `contenu`, `titre`,
+  `images` (répété, ≤ 10), `image` (ancien client), `video`, `lien`,
+  `categorie` → **201 avec la publication complète**.
+- `GET/PATCH/DELETE /api/feed/<id>/` : lecture publique ; `PATCH` réservé à
+  l'auteur (403 sinon) ; `DELETE` auteur ou `is_staff` (403 sinon).
+- `GET/POST /api/feed/<id>/comment/` : lecture publique, ajout authentifié
+  (`comment`, `comment_count`) ; commentaires enrichis `user_id`,
+  `user_photo`, `is_author` (= « écrit par moi »).
+- Modèle : `Realisation` gagne `contenu`, `video`, `lien`, `categorie`
+  (FK `CategoriePrestation`, `SET_NULL`), `modifie_le` ; `image` devient
+  facultative et `RealisationImage` porte les images supplémentaires.
+
+### 11.7 Vérifications
+
+- `python manage.py test` → **66 tests OK** (9 nouveaux sur le fil :
+  publication texte seul, images multiples, refus du vide, refus de 11
+  images, extension interdite, 401 anonyme, pagination/tri, recherche et
+  filtre catégorie, édition par l'auteur, 403 pour un autre compte,
+  suppression par un modérateur, J'aime aller-retour, commentaires).
+- Parcours API rejoué sur le serveur de développement (curl) :
+  `POST` texte seul → 201 (`images: []`, `can_edit/can_delete: true`) ;
+  `POST` 3 images + lien + catégorie → 201 (3 URLs, image principale = 1ʳᵉ) ;
+  image de 25 Mo → **400 « fichier trop volumineux (maximum 5 Mo) »** ;
+  fichier `.exe` → 400 ; publication vide → 400 ; `PATCH` par un autre
+  prestataire → **403** ; `PATCH` par l'auteur → 200 avec `modifie_le` ;
+  `PATCH {"categorie": null}` → 200 ; `DELETE` par un tiers → 403 ; par
+  l'auteur → 204 ; commentaires `GET`/`POST` → 200/201 avec compteur ;
+  J'aime aller-retour → `{liked, like_count}` cohérents ; fiche publique
+  sans jeton → `is_liked: false`, `can_edit: false`, compteurs exacts.
+
+### 11.8 Site web aligné sur le nouveau modèle
+
+`image` étant devenue facultative, le site a été adapté pour ne rien casser :
+`templates/feed/feed_items.html` (texte `contenu`, image **ou** vidéo
+facultatives, lien), `templates/main/prestataire_detail.html` et
+`templates/main/profile.html` (vignette de repli avec le texte),
+`static/js/profile.js` (nouvelle réalisation sans image),
+`main/forms.py` (champ `contenu` dans le formulaire d'ajout, image désormais
+facultative) et styles `.feed-card__text` / `.portfolio-item__text`.
+
+### 11.9 Application à recompiler
+
+Aucun SDK Flutter n'est disponible dans l'environnement de travail : le code
+Dart a été contrôlé par analyse structurelle (équilibrage et imbrication de
+tous les délimiteurs, commentaires et chaînes retirés) et par vérification
+des symboles utilisés (`AppTheme.*`, `AppConstants.*`, méthodes du service).
+L'application doit être **recompilée** (`flutter run` / `flutter build`) sur
+un poste disposant du SDK pour valider l'affichage final et, le cas échéant,
+reformater avec `dart format`.

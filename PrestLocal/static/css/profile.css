@@ -316,6 +316,20 @@
         box-shadow: var(--shadow-sm);
         cursor: pointer;
     }
+    .portfolio-item__text {
+        width: 100%;
+        height: 100%;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        background: var(--grey-100);
+        line-height: 1.35;
+    }
     .portfolio-item img {
         width: 100%;
         height: 100%;

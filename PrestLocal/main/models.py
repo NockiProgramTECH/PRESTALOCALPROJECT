@@ -200,20 +200,51 @@ class Prestataire(AbstractUser):
         return breakdown
 
 class Realisation(models.Model):
-    """
-    Portfolio d'un prestataire (photos de travaux effectués).
+    """Publication du fil d'actualité / portfolio d'un membre.
+
+    Une publication peut contenir :
+    - du **texte seul** (`contenu`), un titre facultatif (`titre`) ;
+    - une ou plusieurs **images** (`image` = image principale, les suivantes
+      dans `RealisationImage`) ;
+    - une **vidéo** (`video`) ;
+    - un **lien externe** (`lien`) ;
+    - une **catégorie** de prestation (`categorie`).
+
+    Les champs image/vidéo sont facultatifs depuis l'ouverture du fil aux
+    publications textuelles.
     """
     prestataire = models.ForeignKey(Prestataire, on_delete=models.CASCADE, related_name='realisations', verbose_name=_("Prestataire"))
-    image = models.ImageField(upload_to='prestataires/realisations/', verbose_name=_("Image"))
+    image = models.ImageField(upload_to='prestataires/realisations/', null=True, blank=True, verbose_name=_("Image principale"))
+    video = models.FileField(upload_to='prestataires/videos/', null=True, blank=True, verbose_name=_("Vidéo"))
+    contenu = models.TextField(blank=True, default='', verbose_name=_("Texte de la publication"))
     titre = models.CharField(max_length=200, null=True, blank=True, verbose_name=_("Titre de la réalisation"))
+    lien = models.URLField(max_length=500, blank=True, default='', verbose_name=_("Lien externe"))
+    categorie = models.ForeignKey('CategoriePrestation', on_delete=models.SET_NULL, null=True, blank=True, related_name='realisations', verbose_name=_("Catégorie"))
     date_ajout = models.DateTimeField(auto_now_add=True)
+    modifie_le = models.DateTimeField(auto_now=True, verbose_name=_("Modifiée le"))
 
     class Meta:
         verbose_name = _("Réalisation")
         verbose_name_plural = _("Réalisations")
+        ordering = ['-date_ajout']
 
     def __str__(self):
         return f"Réalisation de {self.prestataire} - {self.titre or self.id}"
+
+
+class RealisationImage(models.Model):
+    """Image supplémentaire d'une publication (au-delà de l'image principale)."""
+    realisation = models.ForeignKey(Realisation, on_delete=models.CASCADE, related_name='images', verbose_name=_("Réalisation"))
+    image = models.ImageField(upload_to='prestataires/realisations/', verbose_name=_("Image"))
+    ordre = models.PositiveIntegerField(default=0, verbose_name=_("Ordre"))
+
+    class Meta:
+        verbose_name = _("Image de réalisation")
+        verbose_name_plural = _("Images de réalisation")
+        ordering = ['ordre', 'id']
+
+    def __str__(self):
+        return f"Image {self.ordre} de la réalisation {self.realisation_id}"
 
 class Evaluation(models.Model):
     """

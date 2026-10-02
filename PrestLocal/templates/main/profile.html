@@ -115,7 +115,13 @@
             <div class="portfolio-grid" id="portfolio-grid">
                 {% for real in realisations %}
                 <div class="portfolio-item" id="real-{{ real.id }}">
-                    <img src="{{ real.image.url }}" alt="{{ real.titre }}">
+                    {% if real.image %}
+                        <img src="{{ real.image.url }}" alt="{{ real.titre }}">
+                    {% else %}
+                        <div class="portfolio-item__text" title="{{ real.titre|default:'Publication' }}">
+                            {{ real.contenu|default:real.titre|truncatechars:80 }}
+                        </div>
+                    {% endif %}
                     <div class="portfolio-overlay">
                         <button class="btn-delete-real" data-real-id="{{ real.id }}" title="Supprimer">
                             <i class="fas fa-trash"></i>
@@ -257,6 +263,10 @@
                 <div class="form-group">
                     <label>Titre de la réalisation</label>
                     {{ form.titre }}
+                </div>
+                <div class="form-group">
+                    <label>Texte de la publication (facultatif)</label>
+                    {{ form.contenu }}
                 </div>
                 <div class="form-group">
                     <label>Image (Travail effectué)</label>

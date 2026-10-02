@@ -18,6 +18,7 @@ from main.models import (
     Prestataire,
     Prestation,
     Realisation,
+    RealisationImage,
     Ville,
 )
 
@@ -265,50 +266,299 @@ class FeedPrestataireSerializer(serializers.ModelSerializer):
         return f"{obj.first_name} {obj.last_name}".strip()
 
 
+# ---------------------------------------------------------------------------
+# Publications du fil d'actualité : limites de fichiers
+# ---------------------------------------------------------------------------
+MAX_PUBLICATION_IMAGES = 10
+MAX_IMAGE_SIZE = 5 * 1024 * 1024          # 5 Mo par image
+MAX_VIDEO_SIZE = 50 * 1024 * 1024         # 50 Mo par vidéo
+ALLOWED_IMAGE_EXTENSIONS = ('jpg', 'jpeg', 'png', 'webp')
+ALLOWED_VIDEO_EXTENSIONS = ('mp4', 'mov', 'm4v', 'webm')
+
+
+def _file_extension(upload):
+    name = (getattr(upload, 'name', '') or '').lower()
+    return name.rsplit('.', 1)[-1] if '.' in name else ''
+
+
+def _validate_upload(upload, *, allowed, max_size, label):
+    """Contrôle le type et la taille d'un fichier envoyé."""
+    extension = _file_extension(upload)
+    if extension not in allowed:
+        raise serializers.ValidationError(
+            f"{label} : format non pris en charge (autorisés : "
+            f"{', '.join(allowed)})."
+        )
+    if upload.size > max_size:
+        raise serializers.ValidationError(
+            f"{label} : fichier trop volumineux "
+            f"({upload.size // (1024 * 1024)} Mo, maximum "
+            f"{max_size // (1024 * 1024)} Mo)."
+        )
+    return upload
+
+
+def realisation_image_urls(obj, request):
+    """URLs absolues des images d'une publication (principale puis extras)."""
+    urls = []
+    principale = _absolute_media_url(request, obj.image)
+    if principale:
+        urls.append(principale)
+    for extra in obj.images.all():
+        url = _absolute_media_url(request, extra.image)
+        if url:
+            urls.append(url)
+    return urls
+
+
 class FeedRealisationSerializer(serializers.ModelSerializer):
-    """Réalisation avec son auteur (prestataire) pour le fil d'actualité."""
+    """Publication du fil d'actualité, avec son auteur.
+
+    Expose le texte, les images (une ou plusieurs), la vidéo, le lien, la
+    catégorie, les compteurs de réactions/commentaires et les permissions
+    d'édition du lecteur courant.
+    """
     prestataire = FeedPrestataireSerializer(read_only=True)
     like_count = serializers.IntegerField(read_only=True)
     comment_count = serializers.IntegerField(read_only=True)
+    images = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+    categorie_nom = serializers.SerializerMethodField()
+    categorie = serializers.PrimaryKeyRelatedField(read_only=True)
+    is_liked = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
 
     class Meta:
         model = Realisation
         fields = [
             'id',
             'titre',
+            'contenu',
+            'lien',
+            'categorie',
+            'categorie_nom',
+            'images',
             'image',
+            'video_url',
             'date_ajout',
+            'modifie_le',
             'prestataire',
             'like_count',
             'comment_count',
+            'is_liked',
+            'can_edit',
+            'can_delete',
         ]
+
+    def get_images(self, obj):
+        return realisation_image_urls(obj, self.context.get('request'))
+
+    def get_image(self, obj):
+        """Image principale (compatibilité : ancien champ unique)."""
+        urls = realisation_image_urls(obj, self.context.get('request'))
+        return urls[0] if urls else None
+
+    def get_video_url(self, obj):
+        return _absolute_media_url(self.context.get('request'), obj.video)
+
+    def get_categorie_nom(self, obj):
+        return obj.categorie.nom if obj.categorie_id else None
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        liked = getattr(obj, 'liked_by_user', None)
+        if liked is not None:
+            return liked
+        return Like.objects.filter(user=request.user, realisation=obj).exists()
+
+    def _peut_gerer(self, obj):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        # Auteur de la publication, ou rôle de modération (staff).
+        return obj.prestataire_id == request.user.id or request.user.is_staff
+
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        return obj.prestataire_id == request.user.id
+
+    def get_can_delete(self, obj):
+        return self._peut_gerer(obj)
 
 
 class FeedCreateSerializer(serializers.ModelSerializer):
-    """Création d'une réalisation (publication prestataire).
+    """Création d'une publication (texte, images, vidéo, lien, catégorie).
 
-    `titre` optionnel, `image` obligatoire (multipart). Le prestataire
-    auteur est déduit de `request.user` dans la vue.
+    Champs multipart acceptés :
+    - `contenu` : texte multiligne (facultatif si un média est fourni) ;
+    - `titre` : titre court facultatif (portfolio) ;
+    - `images` : une ou plusieurs images (max 10, 5 Mo chacune) ;
+    - `video` : vidéo facultative (max 50 Mo) ;
+    - `lien` : lien externe facultatif ;
+    - `categorie` : identifiant de catégorie facultatif.
+
+    L'auteur est déduit de `request.user` dans la vue.
     """
-    image = serializers.ImageField(required=True)
-    titre = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    titre = serializers.CharField(
+        required=False, allow_blank=True, max_length=200
+    )
+    contenu = serializers.CharField(required=False, allow_blank=True)
+    lien = serializers.URLField(
+        required=False, allow_blank=True, max_length=500
+    )
+    categorie = serializers.PrimaryKeyRelatedField(
+        queryset=CategoriePrestation.objects.all(),
+        required=False, allow_null=True,
+    )
+    images = serializers.ListField(
+        child=serializers.ImageField(), required=False, write_only=True
+    )
+    # Ancien champ unique, conservé pour les clients existants (site web).
+    image = serializers.ImageField(
+        required=False, allow_null=True, write_only=True
+    )
+    video = serializers.FileField(required=False, allow_null=True, write_only=True)
 
     class Meta:
         model = Realisation
-        fields = ['id', 'titre', 'image', 'date_ajout']
+        fields = [
+            'id',
+            'titre',
+            'contenu',
+            'lien',
+            'categorie',
+            'images',
+            'image',
+            'video',
+            'date_ajout',
+        ]
         read_only_fields = ['id', 'date_ajout']
+
+    def validate_images(self, value):
+        if len(value) > MAX_PUBLICATION_IMAGES:
+            raise serializers.ValidationError(
+                f"Maximum {MAX_PUBLICATION_IMAGES} images par publication."
+            )
+        for image in value:
+            _validate_upload(
+                image,
+                allowed=ALLOWED_IMAGE_EXTENSIONS,
+                max_size=MAX_IMAGE_SIZE,
+                label="Image",
+            )
+        return value
+
+    def validate_video(self, value):
+        if value:
+            _validate_upload(
+                value,
+                allowed=ALLOWED_VIDEO_EXTENSIONS,
+                max_size=MAX_VIDEO_SIZE,
+                label="Vidéo",
+            )
+        return value
+
+    def validate_image(self, value):
+        if value:
+            _validate_upload(
+                value,
+                allowed=ALLOWED_IMAGE_EXTENSIONS,
+                max_size=MAX_IMAGE_SIZE,
+                label="Image",
+            )
+        return value
+
+    def validate(self, attrs):
+        contenu = (attrs.get('contenu') or '').strip()
+        # `image` (ancien champ unique) rejoint la liste des images.
+        images = list(attrs.get('images') or [])
+        if attrs.get('image'):
+            images = [attrs.pop('image')] + images
+        attrs['images'] = images
+        video = attrs.get('video')
+        lien = (attrs.get('lien') or '').strip()
+        if not contenu and not images and not video and not lien:
+            raise serializers.ValidationError({
+                'detail': (
+                    "Publication vide : ajoutez un texte, une image, "
+                    "une vidéo ou un lien."
+                )
+            })
+        attrs['contenu'] = contenu
+        attrs['lien'] = lien
+        return attrs
+
+    def create(self, validated_data):
+        images = validated_data.pop('images', []) or []
+        prestataire = validated_data.pop('prestataire', None)
+        if prestataire is None:
+            prestataire = self.context['request'].user
+
+        # La première image sert d'image principale (portfolio, aperçus) ;
+        # les suivantes sont conservées dans `RealisationImage`.
+        if images:
+            validated_data['image'] = images[0]
+
+        realisation = Realisation.objects.create(
+            prestataire=prestataire, **validated_data
+        )
+        for ordre, image in enumerate(images[1:], start=1):
+            RealisationImage.objects.create(
+                realisation=realisation, image=image, ordre=ordre
+            )
+        return realisation
+
+
+class FeedUpdateSerializer(serializers.ModelSerializer):
+    """Modification d'une publication par son auteur (texte, lien, catégorie)."""
+
+    class Meta:
+        model = Realisation
+        fields = ['titre', 'contenu', 'lien', 'categorie']
+
+    def validate_contenu(self, value):
+        return (value or '').strip()
 
 
 class CommentaireSerializer(serializers.ModelSerializer):
-    """Commentaire d'une réalisation, avec le nom du commentateur."""
+    """Commentaire d'une réalisation, avec le nom et la photo du commentateur."""
     user = serializers.SerializerMethodField()
+    user_id = serializers.SerializerMethodField()
+    user_photo = serializers.SerializerMethodField()
+    is_author = serializers.SerializerMethodField()
 
     class Meta:
         model = Commentaire
-        fields = ['id', 'user', 'contenu', 'created_at']
+        fields = [
+            'id',
+            'user',
+            'user_id',
+            'user_photo',
+            'is_author',
+            'contenu',
+            'created_at',
+        ]
 
     def get_user(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}".strip() or "Utilisateur"
+
+    def get_user_id(self, obj):
+        return str(obj.user_id)
+
+    def get_user_photo(self, obj):
+        return _absolute_media_url(self.context.get('request'), obj.user.photo_profil)
+
+    def get_is_author(self, obj):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        return obj.user_id == request.user.id
 
 
 class FeedDetailSerializer(serializers.ModelSerializer):
@@ -322,29 +572,73 @@ class FeedDetailSerializer(serializers.ModelSerializer):
     commentaires = CommentaireSerializer(many=True, read_only=True)
     like_count = serializers.IntegerField(read_only=True)
     comment_count = serializers.IntegerField(read_only=True)
+    images = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+    categorie = serializers.PrimaryKeyRelatedField(read_only=True)
+    categorie_nom = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
 
     class Meta:
         model = Realisation
         fields = [
             'id',
             'titre',
+            'contenu',
+            'lien',
+            'categorie',
+            'categorie_nom',
+            'images',
             'image',
+            'video_url',
             'date_ajout',
+            'modifie_le',
             'prestataire',
             'commentaires',
             'like_count',
             'comment_count',
             'is_liked',
+            'can_edit',
+            'can_delete',
         ]
+
+    def get_images(self, obj):
+        return realisation_image_urls(obj, self.context.get('request'))
+
+    def get_image(self, obj):
+        urls = realisation_image_urls(obj, self.context.get('request'))
+        return urls[0] if urls else None
+
+    def get_video_url(self, obj):
+        return _absolute_media_url(self.context.get('request'), obj.video)
+
+    def get_categorie_nom(self, obj):
+        return obj.categorie.nom if obj.categorie_id else None
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
         if request is None or not request.user.is_authenticated:
             return False
+        liked = getattr(obj, 'liked_by_user', None)
+        if liked is not None:
+            return liked
         return Like.objects.filter(
             user=request.user, realisation=obj
         ).exists()
+
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        return obj.prestataire_id == request.user.id
+
+    def get_can_delete(self, obj):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        return obj.prestataire_id == request.user.id or request.user.is_staff
 
 
 class EvaluationSerializer(serializers.ModelSerializer):

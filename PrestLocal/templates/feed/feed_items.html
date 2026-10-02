@@ -31,20 +31,39 @@
 
     </div>
 
-    <!-- Image de la réalisation -->
-    <div class="feed-card__image-wrapper">
-        <img
-            src="{{ real.image.url }}"
-            alt="{% if real.titre %}{{ real.titre }}{% else %}Réalisation de {{ real.prestataire.first_name }}{% endif %}"
-            class="feed-card__image"
-            loading="lazy">
-    </div>
+    <!-- Texte de la publication (nouveau modèle) -->
+    {% if real.contenu %}
+        <div class="feed-card__text">{{ real.contenu|linebreaksbr }}</div>
+    {% endif %}
 
-    <!-- Corps : titre + boutons + commentaires -->
+    <!-- Médias : image principale (ou vidéo), facultatifs -->
+    {% if real.image %}
+        <div class="feed-card__image-wrapper">
+            <img
+                src="{{ real.image.url }}"
+                alt="{% if real.titre %}{{ real.titre }}{% else %}Réalisation de {{ real.prestataire.first_name }}{% endif %}"
+                class="feed-card__image"
+                loading="lazy">
+        </div>
+    {% elif real.video %}
+        <div class="feed-card__image-wrapper">
+            <video src="{{ real.video.url }}" class="feed-card__image" controls preload="metadata"></video>
+        </div>
+    {% endif %}
+
+    <!-- Corps : titre + lien + boutons + commentaires -->
     <div class="feed-card__body">
 
         {% if real.titre %}
             <p class="feed-card__title">{{ real.titre }}</p>
+        {% endif %}
+
+        {% if real.lien %}
+            <p class="feed-card__title">
+                <a href="{{ real.lien }}" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-link" aria-hidden="true"></i> {{ real.lien }}
+                </a>
+            </p>
         {% endif %}
 
         <!-- Boutons like, commentaire et partage -->

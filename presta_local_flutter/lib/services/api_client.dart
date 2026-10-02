@@ -24,6 +24,25 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// Fichier à joindre à une requête `multipart/form-data`.
+///
+/// Sert au fil d'actualité, qui peut envoyer **plusieurs images** (champ
+/// `images` répété), une vidéo ou une photo de profil. [isVideo] détermine le
+/// type MIME envoyé (`video/*` plutôt que `image/*`).
+class MultipartUpload {
+  final String field;
+  final Uint8List bytes;
+  final String filename;
+  final bool isVideo;
+
+  const MultipartUpload({
+    required this.field,
+    required this.bytes,
+    required this.filename,
+    this.isVideo = false,
+  });
+}
+
 /// Client HTTP centralisé vers l'API Django.
 ///
 /// - Stocke les tokens JWT (access + refresh) dans le **stockage sécurisé**
@@ -81,6 +100,16 @@ class ApiClient {
 
   Future<bool> hasTokens() async {
     return (await getAccessToken()) != null;
+  }
+
+  /// Vrai si une session est active (jeton d'accès en cache).
+  ///
+  /// Évite d'attacher un en-tête `Bearer null` aux requêtes publiques :
+  /// le fil d'actualité est lisible sans compte, mais les compteurs « J'aime »
+  /// et les permissions ont besoin du jeton quand l'utilisateur est connecté.
+  Future<bool> hasSession() async {
+    await _cacheTokens();
+    return _cachedAccess != null;
   }
 
   Uri _uri(String path) => Uri.parse('${AppConstants.baseUrl}$path');
@@ -179,73 +208,106 @@ class ApiClient {
     return response.statusCode >= 200 && response.statusCode < 300;
   }
 
-  /// POST en `multipart/form-data` pour publier avec un fichier
-  /// (ex. réalisation sur `POST /api/feed/` avec `titre` + `image`).
+  /// POST `multipart/form-data` avec **un ou plusieurs fichiers**
+  /// (ex. publication du fil : `contenu` + `images` répété + `video`).
+  Future<Map<String, dynamic>> postMultipartUploads(
+    String path, {
+    Map<String, String>? fields,
+    List<MultipartUpload> uploads = const [],
+  }) {
+    return _sendMultipart('POST', path, fields: fields, uploads: uploads);
+  }
+
+  /// PATCH `multipart/form-data` avec un ou plusieurs fichiers
+  /// (ex. photo de profil sur `/api/auth/me/`).
+  Future<Map<String, dynamic>> patchMultipartUploads(
+    String path, {
+    Map<String, String>? fields,
+    List<MultipartUpload> uploads = const [],
+  }) {
+    return _sendMultipart('PATCH', path, fields: fields, uploads: uploads);
+  }
+
+  /// POST mono-fichier (compatibilité : publications existantes).
   Future<Map<String, dynamic>> postMultipart(
     String path, {
     Map<String, String>? fields,
     required Uint8List fileBytes,
     required String filename,
     String fileField = 'image',
-  }) async {
-    await _cacheTokens();
-    final uri = _uri(path);
-    final request = http.MultipartRequest('POST', uri);
-    if (_cachedAccess != null) {
-      request.headers['Authorization'] = 'Bearer $_cachedAccess';
-    }
-    if (fields != null) {
-      request.fields.addAll(fields);
-    }
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        fileField,
-        fileBytes,
-        filename: filename,
-        contentType: MediaType('image', _mimeType(filename)),
-      ),
+  }) {
+    return postMultipartUploads(
+      path,
+      fields: fields,
+      uploads: [
+        MultipartUpload(field: fileField, bytes: fileBytes, filename: filename),
+      ],
     );
-    final streamed = await request.send().timeout(_networkTimeout);
-    final response = await http.Response.fromStream(streamed);
-    return _decode(response);
   }
 
-  /// PATCH en `multipart/form-data` pour l'upload d'un fichier
-  /// (ex. photo de profil) sur `/api/auth/me/`.
+  /// PATCH mono-fichier (compatibilité : photo de profil).
   Future<Map<String, dynamic>> patchMultipart(
     String path, {
     Map<String, String>? fields,
     required Uint8List fileBytes,
     required String filename,
     String fileField = 'photo_profil',
+  }) {
+    return patchMultipartUploads(
+      path,
+      fields: fields,
+      uploads: [
+        MultipartUpload(field: fileField, bytes: fileBytes, filename: filename),
+      ],
+    );
+  }
+
+  /// Envoi multipart commun (POST/PATCH), avec jeton JWT et décodage DRF.
+  Future<Map<String, dynamic>> _sendMultipart(
+    String method,
+    String path, {
+    Map<String, String>? fields,
+    List<MultipartUpload> uploads = const [],
   }) async {
     await _cacheTokens();
     final uri = _uri(path);
-    final request = http.MultipartRequest('PATCH', uri)
-      ..headers['Authorization'] = 'Bearer $_cachedAccess';
+    final request = http.MultipartRequest(method, uri);
+    if (_cachedAccess != null) {
+      request.headers['Authorization'] = 'Bearer $_cachedAccess';
+    }
     if (fields != null) {
       request.fields.addAll(fields);
     }
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        fileField,
-        fileBytes,
-        filename: filename,
-        contentType: MediaType('image', _mimeType(filename)),
-      ),
-    );
+    for (final upload in uploads) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          upload.field,
+          upload.bytes,
+          filename: upload.filename,
+          contentType: _mediaType(upload.filename, isVideo: upload.isVideo),
+        ),
+      );
+    }
     final streamed = await request.send().timeout(_networkTimeout);
     final response = await http.Response.fromStream(streamed);
     return _decode(response);
   }
 
-  String _mimeType(String filename) {
+  MediaType _mediaType(String filename, {bool isVideo = false}) {
     final name = filename.toLowerCase();
-    if (name.endsWith('.png')) return 'png';
-    if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'jpeg';
-    if (name.endsWith('.webp')) return 'webp';
-    if (name.endsWith('.gif')) return 'gif';
-    return 'jpeg';
+    if (isVideo) {
+      if (name.endsWith('.mov')) return MediaType('video', 'quicktime');
+      if (name.endsWith('.webm')) return MediaType('video', 'webm');
+      if (name.endsWith('.m4v')) return MediaType('video', 'x-m4v');
+      return MediaType('video', 'mp4');
+    }
+    if (name.endsWith('.png')) return MediaType('image', 'png');
+    if (name.endsWith('.jpg') || name.endsWith('.jpeg')) {
+      return MediaType('image', 'jpeg');
+    }
+    if (name.endsWith('.webp')) return MediaType('image', 'webp');
+    if (name.endsWith('.gif')) return MediaType('image', 'gif');
+    return MediaType('image', 'jpeg');
   }
 
   // ---- Implémentation ----

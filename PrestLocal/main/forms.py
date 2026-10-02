@@ -9,9 +9,16 @@ class RealisationForm(forms.ModelForm):
     """
     class Meta:
         model = Realisation
-        fields = ['titre', 'image']
+        # `image` est désormais facultative : une publication peut être
+        # uniquement textuelle (même modèle que le fil de l'application).
+        fields = ['titre', 'contenu', 'image']
         widgets = {
             'titre': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Ex: Rénovation villa à Ouaga'}),
+            'contenu': forms.Textarea(attrs={
+                'class': 'form-input',
+                'rows': 4,
+                'placeholder': "Quoi de neuf dans votre activité ? (texte facultatif)",
+            }),
             'image': forms.FileInput(attrs={'class': 'form-input'}),
         }
 

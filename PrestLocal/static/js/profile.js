@@ -58,8 +58,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const newItem = document.createElement('div');
                     newItem.className = 'portfolio-item';
                     newItem.id = `real-${data.realisation.id}`;
+                    const visuel = data.realisation.image_url
+                        ? `<img src="${data.realisation.image_url}" alt="${escapeHtml(data.realisation.titre)}">`
+                        : `<div class="portfolio-item__text">${escapeHtml(data.realisation.titre || 'Publication')}</div>`;
                     newItem.innerHTML = `
-                        <img src="${data.realisation.image_url}" alt="${escapeHtml(data.realisation.titre)}">
+                        ${visuel}
                         <div class="portfolio-overlay">
                             <button class="btn-delete-real" data-real-id="${data.realisation.id}">
                                 <i class="fas fa-trash"></i>

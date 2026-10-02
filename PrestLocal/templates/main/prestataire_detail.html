@@ -140,9 +140,11 @@
             </div>
             <div class="realisations-grid">
                 {% for realisation in prestataire.realisations.all %}
+                    {% if realisation.image %}
                     <div class="realisation-item">
                         <img src="{{ realisation.image.url }}" alt="{{ realisation.titre|default:"Réalisation" }}">
                     </div>
+                    {% endif %}
                 {% empty %}
                     <!-- Premium Illustration Fallbacks if no portfolio uploads exist -->
                     <div class="realisation-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--grey-100); color: var(--text-medium); border: 1px dashed var(--grey-400);">
