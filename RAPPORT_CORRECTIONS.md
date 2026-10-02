@@ -369,3 +369,68 @@ Le lien « S'inscrire » empile désormais l'écran (`push` au lieu de
   (`CompressedManifestStaticFilesStorage`) n'est plus actif qu'hors `DEBUG`,
   afin qu'un `collectstatic` oublié ne fasse plus échouer le rendu des pages en
   développement et pendant les tests.
+
+## 9. Application : sélecteurs de profil corrigés + abonnement complet
+
+### 9.1 Villes et métiers impossibles à sélectionner (corrigé)
+
+`AuthService.fetchVilles()` / `fetchMetiers()` passaient par
+`ApiClient.get()`, qui **ne décode que les objets JSON**. Or `/api/villes/` et
+`/api/prestations/` renvoient un **tableau** (endpoints sans pagination) :
+le dictionnaire obtenu était vide, donc `_villes` et `_metiers` restaient
+vides et les menus déroulants « Ville » / « Métier » ne s'ouvraient pas.
+
+- `lib/services/auth_service.dart` : passage à `ApiClient.getList()`
+  (qui accepte le tableau direct **et** l'objet paginé `{"results": [...]}`).
+- `lib/screens/profile/profile_edit_screen.dart` : si les listes ne chargent
+  pas, un bandeau « Villes et métiers indisponibles » avec bouton
+  **Réessayer** remplace les menus vides (plus d'écran muet) ; libellés
+  d'aide « Sélectionnez votre ville / votre métier ».
+- La biographie reste un champ de texte libre : elle est enregistrée avec le
+  reste du profil via `PATCH /api/auth/me/`.
+- Test API ajouté : `/api/categories/`, `/api/villes/` et `/api/prestations/`
+  doivent renvoyer un **tableau JSON** (contrat attendu par l'app).
+
+### 9.2 Abonnement : nouvelles fonctions dans l'application
+
+Rien n'existait côté app alors que le site web gérait déjà les offres, le
+paiement Mobile Money simulé et la mise en avant. Ajout d'un parcours
+complet, aligné sur le web :
+
+| Fonction | Emplacement |
+| --- | --- |
+| Écran « Abonnement » (état, bénéfices, offres, paiement) | `lib/screens/profile/subscription_screen.dart` |
+| Service (offres, état, souscription) | `lib/services/subscription_service.dart` |
+| Carte « Mettre mon profil en avant » + section **MON ABONNEMENT** | `lib/screens/profile/profile_screen.dart` |
+| Badge **Profil mis en avant** (listes, fiche prestataire, profil) | `lib/widgets/badges.dart` (`FeaturedPill`), `provider_card.dart`, `profile_model.dart` |
+| Astuce abonnement à la fin de la configuration prestataire | `lib/screens/profile/profile_edit_screen.dart` |
+| « Moyens de paiement » (profil pro) → parcours d'abonnement | `lib/screens/profile/profile_screen.dart` |
+
+Nouveaux endpoints Django (`api/urls.py`) :
+
+| Méthode | URL | Rôle |
+| --- | --- | --- |
+| GET | `/api/abonnement/plans/` | offres (public) |
+| GET | `/api/abonnement/mon-abonnement/` | état de l'abonnement du prestataire |
+| POST | `/api/abonnement/souscrire/` | `{plan, methode, otp}` → active l'abonnement |
+
+`/api/auth/me/` expose désormais `abonnement_actif`, `abonnement_plan`,
+`abonnement_fin` et `abonnement_jours_restants` : l'app affiche donc le badge
+et l'échéance immédiatement après la souscription (rafraîchissement du profil
+via `AuthNotifier.refreshProfile()`), sans redémarrer.
+
+`ProviderModel.isFeatured` est branché sur `abonnement_actif` (il était figé à
+`false`) : les prestataires abonnés portent la pastille « Profil mis en avant »
+dans les listes et sur leur fiche.
+
+### 9.3 Vérifications
+
+- `python manage.py test` → **49 tests OK** (dont 7 nouveaux sur l'abonnement
+  et le contrat « listes de référence en tableau »).
+- Parcours API complet rejoué sur le serveur de développement :
+  `GET /api/abonnement/plans/` → offres ; connexion prestataire ;
+  `POST /api/abonnement/souscrire/` (`{plan, methode: "Orange Money", otp}`)
+  → 201, abonnement actif + `transaction_id` ; `GET /api/auth/me/` →
+  `abonnement_actif = true`, offre et jours restants ;
+  `GET /api/prestataire/?abonnes_only=1` → 8 profils mis en avant.
+- Paiement **simulé** (comme sur le site) : aucun montant réel n'est prélevé.

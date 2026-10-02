@@ -22,6 +22,11 @@ class AuthUser {
   /// Vrai quand les informations indispensables au rôle sont renseignées
   /// (prestataire : métier + ville + quartier ; client : prénom + nom).
   final bool profileCompleted;
+  /// Abonnement du prestataire : état, offre et échéance.
+  final bool abonnementActif;
+  final String? abonnementPlan;
+  final DateTime? abonnementFin;
+  final int abonnementJoursRestants;
 
   const AuthUser({
     required this.id,
@@ -40,6 +45,10 @@ class AuthUser {
     this.quartier,
     this.isAvailable = true,
     this.profileCompleted = false,
+    this.abonnementActif = false,
+    this.abonnementPlan,
+    this.abonnementFin,
+    this.abonnementJoursRestants = 0,
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -64,6 +73,12 @@ class AuthUser {
       quartier: json['quartier']?.toString(),
       isAvailable: json['is_available'] == true,
       profileCompleted: json['profile_completed'] == true,
+      abonnementActif: json['abonnement_actif'] == true,
+      abonnementPlan: json['abonnement_plan']?.toString(),
+      abonnementFin: DateTime.tryParse('${json['abonnement_fin']}'),
+      abonnementJoursRestants: json['abonnement_jours_restants'] is int
+          ? json['abonnement_jours_restants'] as int
+          : 0,
     );
   }
 }
@@ -207,20 +222,28 @@ class AuthService {
   }
 
   /// Liste des villes pour le menu déroulant du profil.
+  ///
+  /// `/api/villes/` renvoie un **tableau JSON** (endpoint sans pagination) :
+  /// on passe donc par [ApiClient.getList]. Auparavant `get()` — qui ne décode
+  /// que les objets — renvoyait un dictionnaire vide, d'où des listes vides et
+  /// des menus déroulants impossibles à ouvrir dans l'écran de profil.
   Future<List<ListOption>> fetchVilles() async {
-    final data = await _api.get('/api/villes/');
+    final data = await _api.getList('/api/villes/', authenticated: false);
     return _parseList(data);
   }
 
   /// Liste des métiers/prestations pour le menu déroulant du profil.
   Future<List<ListOption>> fetchMetiers() async {
-    final data = await _api.get('/api/prestations/');
+    final data = await _api.getList('/api/prestations/', authenticated: false);
     return _parseList(data);
   }
 
-  List<ListOption> _parseList(Map<String, dynamic> data) {
-    // L'API pagine les listes sous la clé "results".
-    final raw = data['results'] as List? ?? [];
+  /// Convertit une réponse de liste en options de menu déroulant.
+  ///
+  /// L'API renvoie soit un tableau direct (endpoints sans pagination), soit un
+  /// objet `{"results": [...]}` (endpoints paginés) ; [ApiClient.getList]
+  /// normalise déjà les deux cas.
+  List<ListOption> _parseList(List<dynamic> raw) {
     return raw
         .whereType<Map<String, dynamic>>()
         .map(ListOption.fromJson)

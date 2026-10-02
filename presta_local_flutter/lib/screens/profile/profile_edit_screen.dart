@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/auth_service.dart';
+import 'subscription_screen.dart';
 
 /// ---------------------------------------------------------------------------
 /// Écran de configuration du profil
@@ -40,6 +41,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   bool _saving = false;
   bool _uploadingPhoto = false;
+  bool _listsLoading = true;
+  bool _listsError = false;
   String? _error;
 
   // Options des menus déroulants
@@ -80,9 +83,18 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       setState(() {
         _villes = villes;
         _metiers = metiers;
+        _listsLoading = false;
+        _listsError = false;
       });
     } catch (_) {
-      // Les listes restent vides si indisponibles ; le profil reste éditable.
+      // Sans les listes, les menus « Ville » / « Métier » resteraient vides :
+      // on l'indique clairement avec un bouton « Réessayer » plutôt que de
+      // laisser l'utilisateur devant un menu impossible à ouvrir.
+      if (!mounted) return;
+      setState(() {
+        _listsLoading = false;
+        _listsError = true;
+      });
     }
   }
 
@@ -311,6 +323,52 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               ),
               const SizedBox(height: 16),
 
+              if (_listsError) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDECEC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_rounded,
+                        size: 18,
+                        color: AppTheme.danger,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Villes et métiers indisponibles : vérifiez votre '
+                          'connexion puis réessayez.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.navy,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _listsLoading = true;
+                            _listsError = false;
+                          });
+                          _loadLists();
+                        },
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ] else if (_listsLoading) ...[
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: LinearProgressIndicator(minHeight: 3),
+                ),
+              ],
+
               // Ville
               DropdownButtonFormField<int>(
                 initialValue: _selectedVilleId,
@@ -321,6 +379,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 validator: (value) => widget.onboarding && value == null
                     ? 'Sélectionnez votre ville'
                     : null,
+                hint: const Text('Sélectionnez votre ville'),
                 items: _villes
                     .map((v) => DropdownMenuItem(
                           value: v.id,
@@ -360,6 +419,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   validator: (value) => widget.onboarding && value == null
                       ? 'Sélectionnez votre métier'
                       : null,
+                  hint: const Text('Sélectionnez votre métier'),
                   items: _metiers
                       .map((m) => DropdownMenuItem(
                             value: m.id,
@@ -407,6 +467,46 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   _error!,
                   style: const TextStyle(color: Colors.red, fontSize: 13),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              if (widget.onboarding && _isProvider) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.inputFill,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.workspace_premium_rounded,
+                        size: 20,
+                        color: AppTheme.primaryPressed,
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Astuce : un abonnement met votre profil en tête des '
+                          'recherches clients.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            height: 1.3,
+                            color: AppTheme.navy,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SubscriptionScreen(),
+                          ),
+                        ),
+                        child: const Text('Voir'),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],

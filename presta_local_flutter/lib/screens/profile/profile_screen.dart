@@ -19,6 +19,7 @@ import '../feed/feed_create_screen.dart';
 import '../messages/chat_screen.dart';
 import '../auth/login_screen.dart';
 import 'profile_edit_screen.dart';
+import 'subscription_screen.dart';
 
 /// Écran de profil (double usage, maquettes « profil_prestataire_devis »
 /// et « mon_profil ») :
@@ -337,6 +338,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
             spacing: 6,
             runSpacing: 6,
             children: [
+              if (provider.isFeatured) const FeaturedPill(),
               if (provider.isOnline)
                 const AvailablePill(label: 'Disponible'),
               if (provider.isVerified)
@@ -1555,10 +1557,37 @@ class _UserDashboard extends ConsumerWidget {
               padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: _PortfolioSection(),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: _proBanner(context),
-          ),
+          if (authState.isProvider)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _abonnementCard(context, ref),
+            ),
+          if (!authState.isProvider)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _proBanner(context),
+            ),
+          if (authState.isProvider)
+            _menuSection('MON ABONNEMENT', [
+              _menuItem(
+                icon: Icons.workspace_premium_rounded,
+                iconBg: AppTheme.primarySoft,
+                iconColor: AppTheme.primaryPressed,
+                title: 'Abonnement & mise en avant',
+                subtitle: authState.abonnementActif
+                    ? 'Actif${authState.abonnementPlan != null ? ' — ${authState.abonnementPlan}' : ''}'
+                        '${authState.abonnementJoursRestants > 0 ? ' · ${authState.abonnementJoursRestants} j restants' : ''}'
+                    : 'Profil non mis en avant — choisir une offre',
+                trailing: authState.abonnementActif
+                    ? const FeaturedPill()
+                    : const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: AppTheme.muted,
+                      ),
+                onTap: () => _openAbonnement(context),
+              ),
+            ]),
           _menuSection('MON ACTIVITÉ', [
             _menuItem(
               icon: Icons.receipt_long_outlined,
@@ -1593,8 +1622,12 @@ class _UserDashboard extends ConsumerWidget {
               iconBg: AppTheme.inputFill,
               iconColor: AppTheme.navy,
               title: 'Moyens de paiement',
-              subtitle: 'Orange Money, Moov, Espèces',
-              onTap: () => _snack('Paiements — Bientôt disponible'),
+              subtitle: authState.isProvider
+                  ? 'Orange Money, Moov Money, Wave'
+                  : 'Orange Money, Moov, Espèces',
+              onTap: authState.isProvider
+                  ? () => _openAbonnement(context)
+                  : () => _snack('Paiements — Bientôt disponible'),
             ),
             _menuItem(
               icon: Icons.badge_outlined,
@@ -1687,6 +1720,85 @@ class _UserDashboard extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Ouvre l'écran d'abonnement puis recharge l'état du profil.
+  void _openAbonnement(BuildContext context) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
+  }
+
+  /// Carte « abonnement » du tableau de bord prestataire.
+  ///
+  /// - abonnement actif  : rappel de l'offre et de l'échéance ;
+  /// - sinon             : appel à l'action pour mettre le profil en avant.
+  Widget _abonnementCard(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final actif = auth.abonnementActif;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => _openAbonnement(context),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: actif
+                ? const [Color(0xFF047857), AppTheme.success]
+                : const [Color(0xFFB45309), AppTheme.primaryPressed],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              actif ? Icons.verified_rounded : Icons.rocket_launch_rounded,
+              size: 26,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    actif
+                        ? 'Profil mis en avant'
+                        : 'Mettez votre profil en avant',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    actif
+                        ? '${auth.abonnementPlan ?? 'Abonnement actif'}'
+                            '${auth.abonnementJoursRestants > 0 ? ' · ${auth.abonnementJoursRestants} jour(s) restant(s)' : ''}'
+                        : 'Passez en tête des recherches des clients : '
+                            'offres à partir de 5 000 FCFA.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.3,
+                      color: Colors.white.withValues(alpha: 0.92),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1808,7 +1920,15 @@ class _UserDashboard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const VerifiedPill(label: 'Client vérifié'),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        const VerifiedPill(label: 'Vérifié LesProduFao'),
+                        if (auth.isProvider && auth.abonnementActif)
+                          const FeaturedPill(),
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     if ((user?.telephone?.isNotEmpty == true))
                       Row(
@@ -1978,7 +2098,7 @@ class _UserDashboard extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Vous avez des compétences manuelles ou professionnelles ? Devenez prestataire LesProduFao et touchez des clients chaque jour à Ouagadougou.',
+            'Vous avez des compétences manuelles ou professionnelles ? Devenez prestataire LesProduFao : avec un abonnement, votre profil apparaît en tête des recherches et vous touchez des clients chaque jour à Ouagadougou.',
             style: TextStyle(fontSize: 12, color: Colors.white, height: 1.5),
           ),
           const SizedBox(height: 12),

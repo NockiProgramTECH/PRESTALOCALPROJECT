@@ -6,12 +6,15 @@ import '../config/theme.dart';
 /// « Disponible » (point émeraude pulsant implicite) et « Vérifié ».
 class StatusPills extends StatelessWidget {
   final bool isVerified;
+  /// Prestataire dont l'abonnement est actif (profil mis en avant).
+  final bool isFeatured;
   final String? availabilityLabel;
   final bool compact;
 
   const StatusPills({
     super.key,
     this.isVerified = false,
+    this.isFeatured = false,
     this.availabilityLabel,
     this.compact = false,
   });
@@ -22,6 +25,7 @@ class StatusPills extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
+        if (isFeatured) const FeaturedPill(),
         if (isVerified) const VerifiedPill(),
         if (availabilityLabel != null)
           AvailablePill(label: availabilityLabel!, compact: compact),
@@ -139,6 +143,40 @@ class SoftPill extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: foreground ?? AppTheme.navy,
         ),
+      ),
+    );
+  }
+}
+
+/// Pastille « Profil mis en avant » : réservée aux prestataires dont
+/// l'abonnement est actif (mise en avant dans les recherches).
+class FeaturedPill extends StatelessWidget {
+  const FeaturedPill({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFB45309), AppTheme.primaryPressed],
+        ),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.workspace_premium_rounded, size: 13, color: Colors.white),
+          SizedBox(width: 4),
+          Text(
+            'Profil mis en avant',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }

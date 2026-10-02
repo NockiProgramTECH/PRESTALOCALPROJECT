@@ -13,6 +13,9 @@ from Messagerie.api import (
 
 from .views import (
     CategorieListView,
+    MonAbonnementView,
+    PlanAbonnementListView,
+    SouscrireAbonnementView,
     FeedCommentView,
     FeedDetailView,
     FeedLikeView,
@@ -48,6 +51,11 @@ urlpatterns = [
     path("auth/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/verify-email/", VerifyEmailView.as_view(), name="verify_email"),
+
+    # ---- Abonnement des prestataires -------------------------------------
+    path("abonnement/plans/", PlanAbonnementListView.as_view(), name="abonnement_plans"),
+    path("abonnement/mon-abonnement/", MonAbonnementView.as_view(), name="abonnement_mien"),
+    path("abonnement/souscrire/", SouscrireAbonnementView.as_view(), name="abonnement_souscrire"),
 
     # ---- Données de référence --------------------------------------------
     path("villes/", VilleListView.as_view(), name="ville_list"),

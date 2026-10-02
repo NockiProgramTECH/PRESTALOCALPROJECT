@@ -133,7 +133,8 @@ class ProviderModel {
       whatsapp: null,
       email: json['email']?.toString(),
       isVerified: json['est_verifie'] == true,
-      isFeatured: false,
+      // `abonnement_actif` de l'API : abonnement payé, actif et non expiré.
+      isFeatured: json['abonnement_actif'] == true,
       isOnline: json['is_available'] == true,
       lastActive: null,
     );

@@ -77,6 +77,7 @@ class ProviderCard extends ConsumerWidget {
                   const SizedBox(height: 8),
                   StatusPills(
                     isVerified: provider.isVerified,
+                    isFeatured: provider.isFeatured,
                     availabilityLabel: provider.isOnline ? 'Disponible' : null,
                     compact: true,
                   ),

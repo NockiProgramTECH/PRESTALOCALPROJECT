@@ -49,7 +49,10 @@ from main.models import (
 )
 
 from .permissions import IsOwnerOrReadOnly
+from Abonnement.models import Abonnement, PlanAbonnement
+
 from .serializers import (
+    AbonnementSerializer,
     CategorieSerializer,
     CommentaireSerializer,
     EvaluationCreateSerializer,
@@ -58,11 +61,14 @@ from .serializers import (
     FeedDetailSerializer,
     FeedRealisationSerializer,
     PasswordResetConfirmSerializer,
+    DEFAULT_PLANS,
     PasswordResetRequestSerializer,
+    PlanAbonnementSerializer,
     PrestataireSerializers,
     PrestationListSerializer,
     PrestatireDetailSerialzer,
     RegisterSerializer,
+    SouscriptionAbonnementSerializer,
     UserSerializer,
     VerifyEmailSerializer,
     VilleSerializer,
@@ -582,3 +588,105 @@ class FeedCommentView(APIView):
             'comment': serializer.data,
             'comment_count': realisation.commentaires.count(),
         }, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------------------
+# Abonnement des prestataires
+# ---------------------------------------------------------------------------
+def _ensure_default_plans():
+    """Crée les offres par défaut si la base n'en contient aucune.
+
+    Même comportement que la page web « Abonnement » : la plateforme reste
+    utilisable même sur une base neuve où `populate_db` n'a pas été lancé.
+    """
+    if PlanAbonnement.objects.exists():
+        return
+    for nom, prix, duree, description in DEFAULT_PLANS:
+        PlanAbonnement.objects.get_or_create(
+            nom=nom,
+            defaults={
+                'prix': prix,
+                'duree_jours': duree,
+                'description': description,
+            },
+        )
+
+
+class PlanAbonnementListView(ListAPIView):
+    """Offres d'abonnement disponibles (`GET /api/abonnement/plans/`).
+
+    Tarifs publics : consultables avant même la connexion.
+    """
+    serializer_class = PlanAbonnementSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        _ensure_default_plans()
+        return PlanAbonnement.objects.all().order_by('prix')
+
+
+class MonAbonnementView(APIView):
+    """État de l'abonnement du prestataire connecté.
+
+    Réponse : `{"actif": bool, "abonnement": {...}|null}`.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_prestataire:
+            return Response(
+                {"detail": "L'abonnement est réservé aux comptes prestataires."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            abonnement = request.user.abonnement
+        except Abonnement.DoesNotExist:
+            abonnement = None
+
+        return Response({
+            'actif': bool(abonnement and abonnement.est_valide),
+            'abonnement': (
+                AbonnementSerializer(abonnement).data if abonnement else None
+            ),
+        })
+
+
+class SouscrireAbonnementView(APIView):
+    """Souscription d'un prestataire à une offre (`POST /api/abonnement/souscrire/`).
+
+    Corps : `{"plan": <id>, "methode": "Orange Money"|"Moov Money"|"Wave",
+    "otp": "123456"}`. Le paiement est simulé (comme sur le site web) : un code
+    à 6 chiffres active immédiatement l'abonnement, qui met le profil en avant
+    dans les résultats de recherche.
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_scope = 'auth'
+
+    def post(self, request):
+        if not request.user.is_prestataire:
+            return Response(
+                {"detail": "Seuls les prestataires peuvent s'abonner."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = SouscriptionAbonnementSerializer(
+            data=request.data, context={'request': request},
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        abonnement = serializer.save()
+        plan = abonnement.plan
+        return Response(
+            {
+                'detail': (
+                    f"Paiement réussi ! Votre abonnement « {plan.nom} » est actif "
+                    f"jusqu'au {abonnement.date_fin.strftime('%d/%m/%Y')}. "
+                    "Votre profil est désormais mis en avant."
+                ),
+                'actif': abonnement.est_valide,
+                'abonnement': AbonnementSerializer(abonnement).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )

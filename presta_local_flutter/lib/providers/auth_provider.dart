@@ -38,6 +38,10 @@ class AuthState {
   final bool isProvider;
   final String? userPhoto;
   final bool profileCompleted;
+  /// Abonnement du prestataire (état + offre + jours restants).
+  final bool abonnementActif;
+  final String? abonnementPlan;
+  final int abonnementJoursRestants;
   final String? errorMessage;
 
   const AuthState({
@@ -50,6 +54,9 @@ class AuthState {
     this.isProvider = false,
     this.userPhoto,
     this.profileCompleted = false,
+    this.abonnementActif = false,
+    this.abonnementPlan,
+    this.abonnementJoursRestants = 0,
     this.errorMessage,
   });
 
@@ -68,6 +75,9 @@ class AuthState {
       isProvider: user.isProvider,
       userPhoto: user.photoProfilUrl,
       profileCompleted: user.profileCompleted,
+      abonnementActif: user.abonnementActif,
+      abonnementPlan: user.abonnementPlan,
+      abonnementJoursRestants: user.abonnementJoursRestants,
     );
   }
 
@@ -192,6 +202,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       code: code,
       newPassword: newPassword,
     );
+  }
+
+  /// Recharge le profil depuis l'API et rafraîchit l'état connecté.
+  ///
+  /// Utilisé après une souscription pour que le badge « profil mis en avant »
+  /// apparaisse sans redémarrer l'application.
+  Future<void> refreshProfile() async {
+    if (state.status != AuthStatus.authenticated) return;
+    final user = await _authService.fetchProfile();
+    state = AuthState.authenticated(user);
   }
 
   /// Met à jour le profil et rafraîchit l'état.

@@ -1,13 +1,16 @@
 
 import random
 import re
+import uuid
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.utils import timezone
 from rest_framework import serializers
 
-from Abonnement.models import Abonnement
+from Abonnement.models import Abonnement, PlanAbonnement
 from Feed.models import Commentaire, Like
 from main.models import (
     CategoriePrestation,
@@ -445,6 +448,35 @@ class UserSerializer(serializers.ModelSerializer):
     # après l'inscription (prestataire : métier + ville + quartier).
     profile_completed = serializers.BooleanField(read_only=True)
 
+    # État d'abonnement, utile pour afficher l'invitation à s'abonner et le
+    # badge « profil mis en avant » sans appel supplémentaire.
+    abonnement_actif = serializers.SerializerMethodField()
+    abonnement_plan = serializers.SerializerMethodField()
+    abonnement_fin = serializers.SerializerMethodField()
+    abonnement_jours_restants = serializers.SerializerMethodField()
+
+    def _abonnement(self, obj):
+        try:
+            return obj.abonnement
+        except Abonnement.DoesNotExist:
+            return None
+
+    def get_abonnement_actif(self, obj):
+        abo = self._abonnement(obj)
+        return bool(abo and abo.est_valide)
+
+    def get_abonnement_plan(self, obj):
+        abo = self._abonnement(obj)
+        return abo.plan.nom if abo and abo.plan else None
+
+    def get_abonnement_fin(self, obj):
+        abo = self._abonnement(obj)
+        return abo.date_fin if abo else None
+
+    def get_abonnement_jours_restants(self, obj):
+        abo = self._abonnement(obj)
+        return abo.jours_restants if abo else 0
+
     photo_profil = serializers.ImageField(required=False, allow_null=True)
     photo_profil_url = serializers.SerializerMethodField()
 
@@ -487,6 +519,10 @@ class UserSerializer(serializers.ModelSerializer):
             'is_prestataire',
             'is_client',
             'profile_completed',
+            'abonnement_actif',
+            'abonnement_plan',
+            'abonnement_fin',
+            'abonnement_jours_restants',
         ]
         read_only_fields = ['id', 'email', 'role']
 
@@ -690,3 +726,87 @@ class VerifyEmailSerializer(serializers.Serializer):
         user.code_verification = None
         user.save(update_fields=['is_active', 'code_verification'])
         return user
+
+
+# ---------------------------------------------------------------------------
+# Abonnement des prestataires (offres, état, souscription Mobile Money)
+# ---------------------------------------------------------------------------
+
+#: Offres créées automatiquement si la base n'en contient aucune (mêmes
+#: valeurs que la page web « Abonnement »).
+DEFAULT_PLANS = (
+    ('Découverte (1 mois)', 5000, 30, 'Idéal pour commencer et tester la plateforme.'),
+    ('Professionnel (6 mois)', 25000, 180, 'Pour les pros qui veulent une visibilité durable.'),
+    ('Premium (1 an)', 45000, 365, "La meilleure valeur pour une présence continue toute l'année."),
+)
+
+#: Opérateurs Mobile Money proposés à la souscription (simulation).
+MOBILE_MONEY_OPERATORS = ('Orange Money', 'Moov Money', 'Wave')
+
+
+class PlanAbonnementSerializer(serializers.ModelSerializer):
+    """Offre d'abonnement affichée dans l'application."""
+
+    class Meta:
+        model = PlanAbonnement
+        fields = ['id', 'nom', 'prix', 'duree_jours', 'description']
+
+
+class AbonnementSerializer(serializers.ModelSerializer):
+    """Abonnement d'un prestataire (état + échéance)."""
+
+    plan = PlanAbonnementSerializer(read_only=True)
+    est_valide = serializers.BooleanField(read_only=True)
+    jours_restants = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Abonnement
+        fields = [
+            'id',
+            'plan',
+            'date_debut',
+            'date_fin',
+            'est_actif',
+            'paye',
+            'transaction_id',
+            'est_valide',
+            'jours_restants',
+        ]
+
+
+class SouscriptionAbonnementSerializer(serializers.Serializer):
+    """Souscription simulée : offre + opérateur Mobile Money + code OTP.
+
+    Reproduit le parcours du site web (choix de l'offre, choix de l'opérateur,
+    saisie du code à 6 chiffres). Aucun paiement réel n'est déclenché.
+    """
+
+    plan = serializers.PrimaryKeyRelatedField(queryset=PlanAbonnement.objects.all())
+    methode = serializers.ChoiceField(choices=MOBILE_MONEY_OPERATORS)
+    otp = serializers.CharField(min_length=6, max_length=6)
+
+    def validate_otp(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError(
+                "Le code OTP doit contenir 6 chiffres."
+            )
+        return value
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        plan = validated_data['plan']
+        date_fin = timezone.now() + timedelta(days=plan.duree_jours)
+
+        # `date_fin` est obligatoire : on la fournit dès la création pour ne
+        # jamais insérer de ligne incomplète.
+        abonnement, _ = Abonnement.objects.get_or_create(
+            prestataire=user,
+            defaults={'date_fin': date_fin},
+        )
+        abonnement.plan = plan
+        abonnement.date_fin = date_fin
+        abonnement.est_actif = True
+        abonnement.paye = True
+        abonnement.transaction_id = f"MOB-{uuid.uuid4().hex[:8].upper()}"
+        abonnement.save()
+        return abonnement
