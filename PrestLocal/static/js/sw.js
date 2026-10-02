@@ -36,16 +36,15 @@ self.addEventListener('install', (event) => {
   );
 });
 
-/* ── Activation : nettoyer les anciens caches ── */
+/* ── Activation : nettoyer les caches obsolètes ── */
+const CURRENT_CACHES = [STATIC_CACHE, PAGE_CACHE, IMAGE_CACHE];
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => {
-            return name.startsWith('lesprodufao-') &&
-                   !name.endsWith(CACHE_VERSION);
-          })
+          .filter((name) => !CURRENT_CACHES.includes(name))
           .map((name) => caches.delete(name))
       );
     }).then(() => {
