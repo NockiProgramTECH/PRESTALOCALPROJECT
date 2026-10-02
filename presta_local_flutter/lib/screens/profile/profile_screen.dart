@@ -340,7 +340,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
               if (provider.isOnline)
                 const AvailablePill(label: 'Disponible'),
               if (provider.isVerified)
-                const VerifiedPill(label: 'Vérifié PrestLocal'),
+                const VerifiedPill(label: 'Vérifié LesProduFao'),
             ],
           ),
           const SizedBox(height: 10),
@@ -535,7 +535,7 @@ class _ProviderDetailViewState extends ConsumerState<_ProviderDetailView>
       ClipboardData(
         text:
             '${provider.name} — ${provider.title} à ${provider.location}\n'
-            'Découvert sur PrestA Local.',
+            'Découvert sur LesProduFao.',
       ),
     );
     if (!mounted) return;
@@ -1531,7 +1531,7 @@ class _UserDashboard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppHeader.slim(
-            title: 'PrestLocal',
+            title: 'LesProduFao',
             subtitle: 'Profil',
             onNotificationsTap: () =>
                 _snack('Notifications — Bientôt disponible'),
@@ -1670,7 +1670,7 @@ class _UserDashboard extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    'PrestLocal v2.4.0 • Fait avec passion à Ouaga',
+                    'LesProduFao v2.4.0 • Fait avec passion à Ouaga',
                     style: TextStyle(fontSize: 11, color: AppTheme.muted),
                   ),
                   SizedBox(height: 2),
@@ -1956,7 +1956,7 @@ class _UserDashboard extends ConsumerWidget {
               Icon(Icons.construction_rounded, size: 16, color: Colors.white),
               SizedBox(width: 6),
               Text(
-                'OPPORTUNITÉ PRESTLOCAL',
+                'OPPORTUNITÉ LESPRODUFAO',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -1978,7 +1978,7 @@ class _UserDashboard extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Vous avez des compétences manuelles ou professionnelles ? Devenez prestataire PrestLocal et touchez des clients chaque jour à Ouagadougou.',
+            'Vous avez des compétences manuelles ou professionnelles ? Devenez prestataire LesProduFao et touchez des clients chaque jour à Ouagadougou.',
             style: TextStyle(fontSize: 12, color: Colors.white, height: 1.5),
           ),
           const SizedBox(height: 12),

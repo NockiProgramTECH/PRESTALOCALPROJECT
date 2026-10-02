@@ -1,6 +1,6 @@
 # 🚀 Roadmap : Phase d'Optimisation & Présentation Premium (Phase 3)
 
-Ce document liste les améliorations critiques pour transformer **PrestLocal** en une plateforme prête pour le marché.
+Ce document liste les améliorations critiques pour transformer **LesProduFao** en une plateforme prête pour le marché.
 
 ## 🎨 1. Design & UX "Wow Effect"
 - [ ] **Priorité Mobile (Mobile-First)** : Repasser sur chaque page (Profil, Recherche, Accueil) pour s'assurer que l'expérience est pensée d'abord pour le pouce (boutons tactiles larges, espacements aérés).

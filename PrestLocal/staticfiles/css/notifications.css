@@ -17,9 +17,9 @@
     .btn-mark-read {
         padding: 8px 18px;
         background: var(--bg-soft-green);
-        color: var(--primary-green);
+        color: var(--primary-strong);
         border: 1px solid var(--grey-400);
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         font-weight: 700;
         font-size: 0.85rem;
         cursor: pointer;
@@ -63,9 +63,9 @@
         font-size: 1rem;
     }
     .notif-icon.evaluation { background: #FEF3C7; color: #D97706; }
-    .notif-icon.favori { background: #FCE4EC; color: #E91E63; }
-    .notif-icon.message { background: #DBEAFE; color: #2563EB; }
-    .notif-icon.system { background: #E0F2FE; color: #0369A1; }
+    .notif-icon.favori { background: #FEF2F2; color: var(--danger-red); }
+    .notif-icon.message { background: #FFEDE3; color: var(--primary-strong); }
+    .notif-icon.system { background: #FFEDE3; color: var(--primary-strong); }
     .notif-content {
         flex: 1;
         min-width: 0;

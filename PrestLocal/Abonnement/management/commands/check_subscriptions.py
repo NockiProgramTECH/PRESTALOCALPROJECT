@@ -22,11 +22,11 @@ class Command(BaseCommand):
         count = 0
         for abo in abonnements:
             try:
-                subject = "Votre abonnement expire bientôt - PrestLocal"
+                subject = "Votre abonnement expire bientôt - LesProduFao"
                 html_content = render_to_string('emails/subscription_expiry.html', {
                     'user': abo.prestataire,
                     'expiry_date': abo.date_fin,
-                    'domain': 'prestlocal.com' # Idéalement utiliser un réglage
+                    'domain': 'lesprodufao.com' # Idéalement utiliser un réglage
                 })
                 text_content = f"Bonjour {abo.prestataire.first_name}, votre abonnement expire dans 7 jours."
                 

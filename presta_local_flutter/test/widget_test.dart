@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:presta_local_flutter/models/provider_model.dart';
-import 'package:presta_local_flutter/navigation/mobile_bottom_nav.dart';
-import 'package:presta_local_flutter/screens/splash_screen.dart';
-import 'package:presta_local_flutter/widgets/empty_state.dart';
+import 'package:lesprodufao_flutter/models/provider_model.dart';
+import 'package:lesprodufao_flutter/navigation/mobile_bottom_nav.dart';
+import 'package:lesprodufao_flutter/screens/splash_screen.dart';
+import 'package:lesprodufao_flutter/widgets/empty_state.dart';
 
 /// Tests de fumée (smoke tests) de l'application.
 ///
@@ -14,7 +14,7 @@ void main() {
   testWidgets('Écran de démarrage : marque + slogan', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
 
-    expect(find.text('PrestA Local'), findsOneWidget);
+    expect(find.text('LesProduFao'), findsOneWidget);
     expect(
       find.text('Trouvez les meilleurs prestataires locaux'),
       findsOneWidget,

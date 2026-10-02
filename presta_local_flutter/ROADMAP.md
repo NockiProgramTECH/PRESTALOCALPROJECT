@@ -15,7 +15,7 @@
 > 6. ✅ Bugs UI de `prompt.md` corrigés (cartes, fiche prestataire, messagerie,
 >    profil). Le seul point non reproductible est le « Drawer » : aucun
 >    `Drawer` Flutter n'existe dans le code ; le menu latéral du site
->    (`PrestLocal/templates/includes/navbar.html`) a été consolidé pour que son
+>    (`LesProduFao/templates/includes/navbar.html`) a été consolidé pour que son
 >    bloc d'authentification ne soit plus rogné par la barre de navigation basse.
 
 ---
@@ -102,8 +102,8 @@ Corriger indépendamment de l'API (bugs d'interface existants) :
 ---
 
 ## Notes techniques utiles
-- Backend : serveur de dev `python manage.py runserver 0.0.0.0:8000` (venv `C:\Users\HP\Documents\PrestLocal`).
+- Backend : serveur de dev `python manage.py runserver 0.0.0.0:8000` (venv `C:\Users\HP\Documents\LesProduFao`).
 - `baseUrl` Flutter : **configurable au lancement** — `flutter run --dart-define=API_BASE_URL=http://192.168.1.85:8000`.
   Par défaut : `10.0.2.2:8000` (émulateur Android) ou `127.0.0.1:8000` (web/desktop).
 - Format API : liste paginée sous la clé `results` ; images renvoyées en URL absolue par le viewset.
-- Identifiant de test : `testclient@prestalocal.bf` / `NouveauPass123`.
+- Identifiant de test : `testclient@lesprodufao.bf` / `NouveauPass123`.

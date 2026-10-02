@@ -8,7 +8,7 @@ import '../models/realisation_model.dart';
 import '../models/review_model.dart';
 
 /// ---------------------------------------------------------------------------
-/// Données mock pour le développement et les tests de PrestA Local
+/// Données mock pour le développement et les tests de LesProduFao
 ///
 /// Ces données simulent le comportement de l'API tant que le backend
 /// n'est pas disponible. Toutes les méthodes sont statiques et peuvent

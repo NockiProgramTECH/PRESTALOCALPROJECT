@@ -1,5 +1,5 @@
 /**
- * PrestaLocal - main.js
+ * LesProduFao - main.js
  * Script global de gestion du DOM, des interactions UX/UI et des animations.
  * 
  * Auteur: Senior UX/UI Developer
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Enregistre le Service Worker PrestaLocal et gère les mises à jour.
+ * Enregistre le Service Worker LesProduFao et gère les mises à jour.
  */
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
@@ -63,7 +63,7 @@ function showUpdateBanner() {
     banner.className = 'pwa-update-banner';
     banner.setAttribute('role', 'alert');
     banner.innerHTML = `
-        <span>Une nouvelle version de PrestaLocal est disponible.</span>
+        <span>Une nouvelle version de LesProduFao est disponible.</span>
         <button id="pwaUpdateBtn" class="pwa-update-btn">
             <i class="fas fa-sync-alt"></i> Mettre à jour
         </button>

@@ -11,7 +11,7 @@
     }
     .offline-icon {
         font-size: 5rem;
-        color: var(--primary-green, #0369A1);
+        color: var(--primary-green, #FF8A3D);
         margin-bottom: 1.5rem;
         opacity: 0.7;
     }
@@ -24,11 +24,11 @@
     }
     .offline-container h1 {
         font-size: 1.75rem;
-        color: var(--text-dark, #1F2937);
+        color: var(--text-dark, #1E293B);
         margin-bottom: 1rem;
     }
     .offline-message {
-        color: var(--text-medium, #4B5563);
+        color: var(--text-medium, #64748B);
         line-height: 1.7;
         margin-bottom: 2rem;
     }
@@ -52,17 +52,17 @@
         font-size: 0.95rem;
     }
     .btn-primary {
-        background: var(--primary-green, #0369A1);
+        background: var(--primary-green, #FF8A3D);
         color: white;
     }
     .btn-primary:hover {
-        background: #2E7D32;
+        background: #E07228;
         transform: translateY(-1px);
     }
     .btn-secondary {
-        background: var(--grey-200, #eeeeee);
-        color: var(--text-dark, #1F2937);
+        background: var(--grey-200, #EAE3DB);
+        color: var(--text-dark, #1E293B);
     }
     .btn-secondary:hover {
-        background: var(--grey-400, #D1D5DB);
+        background: var(--grey-400, #EAE3DB);
     }

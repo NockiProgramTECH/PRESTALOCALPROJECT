@@ -9,7 +9,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/splash_screen.dart';
 
 /// ============================================================================
-/// PrestA Local - Application de mise en relation avec des prestataires
+/// LesProduFao - Application de mise en relation avec des prestataires
 /// ============================================================================
 ///
 /// Plateforme burkinabè qui connecte les clients aux prestataires de services
@@ -45,7 +45,7 @@ void main() {
   // Lancement avec Riverpod (ProviderScope = conteneur d'état global)
   runApp(
     const ProviderScope(
-      child: PrestaLocalApp(),
+      child: LesProduFaoApp(),
     ),
   );
 }
@@ -54,14 +54,14 @@ void main() {
 ///
 /// Configure le thème Material 3, l'écran principal, et restaure la session
 /// utilisateur au démarrage (checkSession via JWT stocké localement).
-class PrestaLocalApp extends ConsumerStatefulWidget {
-  const PrestaLocalApp({super.key});
+class LesProduFaoApp extends ConsumerStatefulWidget {
+  const LesProduFaoApp({super.key});
 
   @override
-  ConsumerState<PrestaLocalApp> createState() => _PrestaLocalAppState();
+  ConsumerState<LesProduFaoApp> createState() => _LesProduFaoAppState();
 }
 
-class _PrestaLocalAppState extends ConsumerState<PrestaLocalApp> {
+class _LesProduFaoAppState extends ConsumerState<LesProduFaoApp> {
   @override
   void initState() {
     super.initState();
@@ -73,7 +73,7 @@ class _PrestaLocalAppState extends ConsumerState<PrestaLocalApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PrestA Local BF',
+      title: 'LesProduFao',
       debugShowCheckedModeBanner: false,
 
       // Thème clair Material 3 personnalisé (voir config/theme.dart)

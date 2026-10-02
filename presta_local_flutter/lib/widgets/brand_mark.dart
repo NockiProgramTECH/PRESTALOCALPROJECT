@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 
-/// Logo PrestLocal : carré arrondi dégradé orange, glyph blanc.
+/// Logo LesProduFao : carré arrondi dégradé orange, glyph blanc.
 class BrandMark extends StatelessWidget {
   final double size;
   final double radius;

@@ -32,10 +32,10 @@
     display: flex;
     flex-direction: column;
     background: var(--white);
-    border: 1px solid #E4E7F4;
+    border: 1px solid #EAE3DB;
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 12px 40px -12px rgba(79, 70, 229, 0.12);
+    box-shadow: 0 12px 40px -12px rgba(255, 138, 61, 0.12);
 }
 
 .inbox-item {
@@ -48,12 +48,12 @@
     transition: background 0.18s;
     min-height: 72px; /* cible tactile confortable */
 }
-.inbox-item + .inbox-item { border-top: 1px solid #EEF0FA; }
-.inbox-item:hover { background: #F5F6FF; }
+.inbox-item + .inbox-item { border-top: 1px solid #EAE3DB; }
+.inbox-item:hover { background: #FBF9F7; }
 
 /* Indicateur de non-lu */
-.inbox-item.unread { background: #F8F8FF; }
-.inbox-item.unread .inbox-name { font-weight: 800; color: #1E1B4B; }
+.inbox-item.unread { background: #FBF9F7; }
+.inbox-item.unread .inbox-name { font-weight: 800; color: #1E293B; }
 .inbox-item.unread::before {
     content: '';
     position: absolute;

@@ -5,7 +5,7 @@ import '../widgets/brand_mark.dart';
 
 /// Écran de démarrage affiché pendant la restauration de session.
 ///
-/// Un logo central (marque PrestA Local) sur le fond Trust Blue de la marque,
+/// Un logo central (BrandMark citrus) sur le fond navy de la marque,
 /// avec un léger indicateur de chargement.
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -13,7 +13,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.primaryGreen,
+      backgroundColor: AppTheme.navy,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -21,7 +21,7 @@ class SplashScreen extends StatelessWidget {
             const BrandMark(size: 88, radius: 24, iconSize: 46),
             const SizedBox(height: 20),
             Text(
-              'PrestA Local',
+              'LesProduFao',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,

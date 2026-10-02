@@ -29,7 +29,7 @@
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field }}
                         {% if field.errors %}
-                            <div class="error-message" style="color: var(--primary-red); font-size: 0.85rem; margin-top: 5px;">
+                            <div class="error-message" style="color: var(--danger-red); font-size: 0.85rem; margin-top: 5px;">
                                 {{ field.errors|striptags }}
                             </div>
                         {% endif %}
@@ -54,7 +54,7 @@
 
     <!-- Section Droite : Image Hero -->
     <div class="auth-image-container">
-        <img src="/static/images/hero-illustration.png" alt="Illustration PrestaLocal">
+        <img src="/static/images/hero-illustration.png" alt="Illustration LesProduFao">
     </div>
 </div>
 {% endblock %}

@@ -1,6 +1,6 @@
 # Messagerie temps réel — Documentation WebSocket pour Flutter
 
-> Architecture temps réel de PrestaLocal : envoi/réception **instantanés** via WebSockets,
+> Architecture temps réel de LesProduFao : envoi/réception **instantanés** via WebSockets,
 > **présence en ligne**, et **suppression du polling HTTP 30 s** (le badge de notifications
 > est désormais poussé par le serveur).
 

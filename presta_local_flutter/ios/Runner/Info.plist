@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Presta Local Flutter</string>
+	<string>LesProduFao</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,11 +15,11 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>presta_local_flutter</string>
+	<string>LesProduFao</string>
 	<key>NSCameraUsageDescription</key>
-	<string>PrestA Local utilise la caméra pour prendre une photo de profil.</string>
+	<string>LesProduFao utilise la caméra pour prendre une photo de profil.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>PrestA Local a besoin d'accéder à vos photos pour mettre à jour votre photo de profil.</string>
+	<string>LesProduFao a besoin d'accéder à vos photos pour mettre à jour votre photo de profil.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

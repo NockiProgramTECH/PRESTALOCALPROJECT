@@ -1,4 +1,4 @@
-"""Tests automatisés de l'API REST PrestLocal.
+"""Tests automatisés de l'API REST LesProduFao.
 
 Lancer :
 
@@ -48,7 +48,7 @@ def upload(name='photo.png'):
 
 @override_settings(
     EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
-    MEDIA_ROOT=tempfile.mkdtemp(prefix='prestalocal-tests-'),
+    MEDIA_ROOT=tempfile.mkdtemp(prefix='lesprodufao-tests-'),
 )
 class BaseAPITestCase(APITestCase):
     """Données communes : ville, catégorie, métiers, prestataires, réalisation."""
@@ -73,7 +73,7 @@ class BaseAPITestCase(APITestCase):
         )
 
         cls.pro = Prestataire.objects.create_user(
-            email='pro@prestalocal.bf',
+            email='pro@lesprodufao.bf',
             password='MotDePasse123',
             first_name='Issa',
             last_name='Kaboré',
@@ -88,7 +88,7 @@ class BaseAPITestCase(APITestCase):
             annee_experience=10,
         )
         cls.other_pro = Prestataire.objects.create_user(
-            email='pro2@prestalocal.bf',
+            email='pro2@lesprodufao.bf',
             password='MotDePasse123',
             first_name='Awa',
             last_name='Traoré',
@@ -97,7 +97,7 @@ class BaseAPITestCase(APITestCase):
             ville=cls.ville,
         )
         cls.client_user = Prestataire.objects.create_user(
-            email='client@prestalocal.bf',
+            email='client@lesprodufao.bf',
             password='MotDePasse123',
             first_name='Client',
             last_name='Test',
@@ -115,7 +115,7 @@ class BaseAPITestCase(APITestCase):
         cache.clear()
 
     # ---- Helpers ---------------------------------------------------------
-    def login(self, email='pro@prestalocal.bf', password='MotDePasse123'):
+    def login(self, email='pro@lesprodufao.bf', password='MotDePasse123'):
         response = self.client.post(
             '/api/auth/token/',
             {'email': email, 'password': password},
@@ -141,7 +141,7 @@ class AuthAPITests(BaseAPITestCase):
 
     def test_register_verify_then_login(self):
         response = self.client.post('/api/auth/register/', {
-            'email': 'nouveau@prestalocal.bf',
+            'email': 'nouveau@lesprodufao.bf',
             'first_name': 'Nouveau',
             'last_name': 'Membre',
             'telephone': '+226 76 12 34 56',
@@ -150,7 +150,7 @@ class AuthAPITests(BaseAPITestCase):
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
-        user = Prestataire.objects.get(email='nouveau@prestalocal.bf')
+        user = Prestataire.objects.get(email='nouveau@lesprodufao.bf')
         self.assertFalse(user.is_active)          # compte inactif avant vérification
         self.assertTrue(user.code_verification)   # un code a été généré
         self.assertEqual(len(mail.outbox), 1)     # un seul email envoyé
@@ -176,7 +176,7 @@ class AuthAPITests(BaseAPITestCase):
 
     def test_register_rejects_invalid_phone(self):
         response = self.client.post('/api/auth/register/', {
-            'email': 'tel@prestalocal.bf',
+            'email': 'tel@lesprodufao.bf',
             'first_name': 'Tel',
             'last_name': 'Invalide',
             'telephone': '12345',
@@ -187,7 +187,7 @@ class AuthAPITests(BaseAPITestCase):
 
     def test_register_rejects_weak_password(self):
         response = self.client.post('/api/auth/register/', {
-            'email': 'faible@prestalocal.bf',
+            'email': 'faible@lesprodufao.bf',
             'first_name': 'Mot',
             'last_name': 'Faible',
             'password': '12345678',
@@ -199,7 +199,7 @@ class AuthAPITests(BaseAPITestCase):
         """Adresse inconnue : même réponse 200, aucun email envoyé."""
         response = self.client.post(
             '/api/auth/password-reset/',
-            {'email': 'inconnu@prestalocal.bf'},
+            {'email': 'inconnu@lesprodufao.bf'},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)

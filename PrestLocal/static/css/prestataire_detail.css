@@ -11,7 +11,7 @@
     .star-rating-input label {
         cursor: pointer;
         font-size: 1.8rem;
-        color: #D1D5DB;
+        color: #EAE3DB;
         transition: color 0.2s, transform 0.1s;
     }
     .star-rating-input label:hover,

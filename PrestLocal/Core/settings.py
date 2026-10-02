@@ -1,5 +1,5 @@
 """
-Django settings for Core project (PrestLocal).
+Django settings for Core project (LesProduFao).
 
 Backend : Django 5.2.5 · DRF 3.16 · Channels 4.3 (WebSockets) · PostgreSQL / Redis.
 
@@ -45,7 +45,7 @@ SECRET_KEY = env('SECRET_KEY', default='')
 if SECRET_KEY.strip().lower() in _INSECURE_SECRET_KEYS or len(SECRET_KEY) < 32:
     if DEBUG:
         # Repli de développement uniquement : ne jamais utiliser en production.
-        SECRET_KEY = 'django-insecure-dev-only-secret-key-prestalocal'
+        SECRET_KEY = 'django-insecure-dev-only-secret-key-lesprodufao'
     else:
         raise ImproperlyConfigured(
             "SECRET_KEY manquante ou trop faible. Générez-en une nouvelle :\n"
@@ -63,7 +63,7 @@ else:
     if not ALLOWED_HOSTS:
         raise ImproperlyConfigured(
             "ALLOWED_HOSTS est vide : renseignez le(s) domaine(s) de production "
-            "dans .env (ex. ALLOWED_HOSTS=prestalocal.onrender.com,www.prestalocal.bf)."
+            "dans .env (ex. ALLOWED_HOSTS=lesprodufao.onrender.com,www.lesprodufao.bf)."
         )
 
 
@@ -242,7 +242,7 @@ EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 # Expéditeur par défaut : plus d'adresse codée en dur dans les sérialiseurs.
 DEFAULT_FROM_EMAIL = env(
     'DEFAULT_FROM_EMAIL',
-    default=EMAIL_HOST_USER or 'PrestLocal <no-reply@prestalocal.bf>',
+    default=EMAIL_HOST_USER or 'LesProduFao <no-reply@lesprodufao.bf>',
 )
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 

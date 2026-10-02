@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
-/// Constantes globales de l'application PrestA Local
+/// Constantes globales de l'application LesProduFao
 ///
 /// Contient les chaînes de caractères, URLs, et configurations
 /// utilisées à travers toute l'application.
@@ -12,7 +12,7 @@ class AppConstants {
   // Surchargée au lancement, sans modifier le code :
   //
   //   flutter run --dart-define=API_BASE_URL=http://192.168.1.85:8000
-  //   flutter build apk --dart-define=API_BASE_URL=https://prestalocal.onrender.com
+  //   flutter build apk --dart-define=API_BASE_URL=https://lesprodufao.onrender.com
   //
   // Sans `--dart-define`, une valeur par défaut adaptée à la plateforme est
   // utilisée (émulateur Android : 10.0.2.2 = machine hôte).
@@ -35,7 +35,7 @@ class AppConstants {
   static String get assetBaseUrl => baseUrl;
 
   // ---- Informations générales ----
-  static const String appName = 'PrestA Local';
+  static const String appName = 'LesProduFao';
   static const String appTagline = 'Trouvez les meilleurs prestataires locaux autour de vous';
   static const String appLocation = 'Ouagadougou, Burkina Faso';
   static const String appCurrency = 'CFA';
@@ -83,7 +83,7 @@ class AppConstants {
   static const String errorLoading = 'Erreur lors du chargement des données.';
 
   // ---- Messages de succès ----
-  static const String successRegister = 'Inscription réussie ! Bienvenue sur PrestA Local.';
+  static const String successRegister = 'Inscription réussie ! Bienvenue sur LesProduFao.';
   static const String successMessage = 'Message envoyé avec succès.';
   static const String successFavoriteAdded = 'Ajouté aux favoris.';
   static const String successFavoriteRemoved = 'Retiré des favoris.';

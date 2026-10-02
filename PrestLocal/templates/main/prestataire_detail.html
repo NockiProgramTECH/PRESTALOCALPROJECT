@@ -35,7 +35,7 @@
                 <img src="{{ prestataire.photo_profil.url }}" alt="{{ prestataire.first_name }} {{ prestataire.last_name }}" class="profile-large-img">
             {% else %}
                 <!-- Avatar Initials Fallback -->
-                <div class="profile-large-img" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-green) 0%, #075985 100%); color: var(--white); font-weight: 800; font-size: 3.2rem; border: 4px solid var(--white); box-shadow: var(--shadow-md);">
+                <div class="profile-large-img" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-green) 0%, #E07228 100%); color: var(--white); font-weight: 800; font-size: 3.2rem; border: 4px solid var(--white); box-shadow: var(--shadow-md);">
                     {{ prestataire.first_name|slice:":1" }}{{ prestataire.last_name|slice:":1" }}
                 </div>
             {% endif %}
@@ -43,7 +43,7 @@
             <div class="profile-name-row">
                 <h1>{{ prestataire.first_name }} {{ prestataire.last_name }}</h1>
                 {% if prestataire.est_verifie %}
-                    <i class="fas fa-check-circle verified-icon" style="font-size: 1.25rem; color: #0369A1;" title="Profil vérifié"></i>
+                    <i class="fas fa-check-circle verified-icon" style="font-size: 1.25rem; color: #FF8A3D;" title="Profil vérifié"></i>
                 {% endif %}
             </div>
 

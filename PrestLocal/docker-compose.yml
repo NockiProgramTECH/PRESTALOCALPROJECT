@@ -1,5 +1,5 @@
 # ============================================================================
-# PrestLocal — stack de développement / déploiement complet
+# LesProduFao — stack de développement / déploiement complet
 #
 #   db     : PostgreSQL (données locales ; peut être remplacé par Neon via .env)
 #   redis  : canal des WebSockets (Channels) + cache
@@ -16,13 +16,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-prestalocal}
-      POSTGRES_USER: ${POSTGRES_USER:-prestalocal}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prestalocal}
+      POSTGRES_DB: ${POSTGRES_DB:-lesprodufao}
+      POSTGRES_USER: ${POSTGRES_USER:-lesprodufao}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lesprodufao}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prestalocal} -d ${POSTGRES_DB:-prestalocal}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lesprodufao} -d ${POSTGRES_DB:-lesprodufao}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -47,7 +47,7 @@ services:
       - .env
     environment:
       # Si DATABASE_URL n'est pas défini dans .env, on utilise le Postgres local.
-      DATABASE_URL: ${DATABASE_URL:-postgresql://prestalocal:prestalocal@db:5432/prestalocal}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://lesprodufao:lesprodufao@db:5432/lesprodufao}
       REDIS_URL: redis://redis:6379/0
       # nginx sert /static/ et /media/ : inutile de faire transiter par Django.
       SERVE_MEDIA: "false"

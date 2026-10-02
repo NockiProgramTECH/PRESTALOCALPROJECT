@@ -1,5 +1,5 @@
 /**
- * Messagerie PrestaLocal — temps réel via WebSocket
+ * Messagerie LesProduFao — temps réel via WebSocket
  * Envoi/réception instantanés + présence en ligne.
  * Repli HTTP POST si le WebSocket est indisponible.
  */

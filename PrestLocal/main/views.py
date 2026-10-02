@@ -179,7 +179,7 @@ def submit_evaluation(request, pk):
         
         # Envoi de l'email de notification au prestataire
         try:
-            subject = f"Nouvel avis reçu ({note}/5) - PrestLocal"
+            subject = f"Nouvel avis reçu ({note}/5) - LesProduFao"
             # Rendu du template HTML pour l'email
             html_content = render_to_string('emails/evaluation.html', {
                 'prestataire': prestataire,
@@ -272,7 +272,7 @@ def signup_view(request):
             user.code_verification = code
             user.save()
         
-            subject = "Code de vérification - PrestLocal"
+            subject = "Code de vérification - LesProduFao"
             text_content = f"Votre code de vérification est : {code}"
             # Rendu du template HTML pour l'email
             html_content = render_to_string('emails/verification_code.html', {
@@ -325,7 +325,7 @@ def verify_email_view(request):
                 
                 # Envoyer l'email de demande d'abonnement
                 try:
-                    subject = "Activez votre profil sur PrestLocal"
+                    subject = "Activez votre profil sur LesProduFao"
                     html_content = render_to_string('emails/subscription_request.html', {
                         'user': user,
                         'domain': request.get_host()
@@ -369,7 +369,7 @@ def password_reset_request_view(request):
                 user.code_verification = code
                 user.save()
                 
-                subject = "Réinitialisation de mot de passe - PrestLocal"
+                subject = "Réinitialisation de mot de passe - LesProduFao"
                 text_content = f"Votre code de réinitialisation est : {code}"
                 html_content = render_to_string('emails/password_reset_code.html', {
                     'user': user,

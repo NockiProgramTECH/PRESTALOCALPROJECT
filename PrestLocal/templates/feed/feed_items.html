@@ -67,8 +67,8 @@
             <button
                 class="share-btn"
                 data-url="{{ request.scheme }}://{{ request.get_host }}{% url 'main:prestataire_detail' real.prestataire.pk %}"
-                data-title="{{ real.prestataire.first_name }} {{ real.prestataire.last_name }} — PrestLocal"
-                data-text="{% if real.titre %}{{ real.titre }}{% else %}Découvrez les réalisations de {{ real.prestataire.first_name }} sur PrestLocal !{% endif %}"
+                data-title="{{ real.prestataire.first_name }} {{ real.prestataire.last_name }} — LesProduFao"
+                data-text="{% if real.titre %}{{ real.titre }}{% else %}Découvrez les réalisations de {{ real.prestataire.first_name }} sur LesProduFao !{% endif %}"
                 aria-label="Partager cette réalisation">
                 <i class="far fa-share-square" aria-hidden="true"></i>
             </button>

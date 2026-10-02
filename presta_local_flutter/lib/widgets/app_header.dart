@@ -75,7 +75,7 @@ class AppHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          title ?? 'PrestLocal',
+          title ?? 'LesProduFao',
           style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
@@ -97,7 +97,7 @@ class AppHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'PrestLocal',
+          'LesProduFao',
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,

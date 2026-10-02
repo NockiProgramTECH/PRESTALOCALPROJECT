@@ -3,7 +3,7 @@
          tout le réseau (API, WebSockets) échoue en production. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="presta_local_flutter"
+        android:label="LesProduFao"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false">

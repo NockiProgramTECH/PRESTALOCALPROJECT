@@ -1,12 +1,12 @@
 {
-  "name": "PrestaLocal",
-  "short_name": "PrestaLocal",
+  "name": "LesProduFao",
+  "short_name": "LesProduFao",
   "description": "Trouvez les meilleurs prestataires de services près de chez vous",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F9FAFB",
-  "theme_color": "#1B5E20",
+  "background_color": "#FBF9F7",
+  "theme_color": "#FF8A3D",
   "orientation": "portrait-primary",
   "lang": "fr-FR",
   "dir": "ltr",
@@ -67,7 +67,7 @@
     {
       "name": "Accueil",
       "short_name": "Accueil",
-      "description": "Page d'accueil PrestaLocal",
+      "description": "Page d'accueil LesProduFao",
       "url": "/",
       "icons": [
         {

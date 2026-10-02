@@ -40,7 +40,7 @@ class MessagesScreen extends ConsumerWidget {
       child: Column(
         children: [
           AppHeader.slim(
-            title: 'PrestLocal',
+            title: 'LesProduFao',
             subtitle: 'Messages',
             hasNotification: unread > 0,
             userName: auth.userName,

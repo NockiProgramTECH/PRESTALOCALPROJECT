@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-PrestaLocal is a Django platform that connects local service providers (**prestataires**) with **clients** looking for services in their city. It features a SASS-style profile dashboard, PWA support, a light/dark theme, subscriptions that gate provider visibility, a social feed, a messaging system, and a DRF API.
+LesProduFao is a Django platform that connects local service providers (**prestataires**) with **clients** looking for services in their city. It features a SASS-style profile dashboard, PWA support, a light/dark theme, subscriptions that gate provider visibility, a social feed, a messaging system, and a DRF API.
 
-Django 6 · DRF · django-filter · Pillow · Gunicorn · WhiteNoise. Python runs from `venv/` (Windows environment, Git Bash shell).
+Django 5.2 · DRF · django-filter · Pillow · Gunicorn · WhiteNoise. Python runs from `venv/` (Windows environment, Git Bash shell).
 
 ## Common commands
 
@@ -53,7 +53,7 @@ Django apps (mounted in `Core/urls.py`):
 Other notable parts:
 
 - `templates/` — Django templates, all extending `templates/base.html`. `base.html` exposes `{% block extrastyle %}` (page-scoped CSS in a `<style>` tag) and `{% block extrajs %}`. Many pages keep their page-specific CSS inline in `extrastyle` rather than in the global stylesheet.
-- `static/css/main.css` — the design system: CSS custom properties in `:root` (colors, shadows, radii, font `Inter`). **Dark mode is done by redefining those variables under `[data-theme="dark"]`** (set on `<html>` before first paint by an anti-flash script in `base.html`). Always style with the `var(--...)` tokens so both themes and PWA offline stay consistent. Font Awesome 6 is loaded globally for icons.
+- `static/css/main.css` — the design system: CSS custom properties in `:root` (colors, shadows, radii, font `Plus Jakarta Sans`). It mirrors the Flutter app's « Warm Kinetic Modern » tokens: citrus `--primary-green: #FF8A3D`, pressed `--primary-pressed: #E07228`, brown accent for text on soft orange `--primary-strong: #9A4600`, navy `--text-dark: #1E293B`, emerald `--success: #10B981` (statuses), sand canvas `--bg-light: #FBF9F7`, warm borders `--card-border: #EAE3DB`. Historical variable names (`--primary-green`, `--primary-red`, `--bg-soft-green`, `--green-text`…) are kept as aliases so existing rules keep working — always style with `var(--...)` tokens so the palette stays consistent with the app. Font Awesome 6 is loaded globally for icons.
 - `static/js/` — vanilla JS per page (e.g. `profile.js`, `messagerie.js`), plain DOM, no framework. AJAX posts send `X-Requested-With: XMLHttpRequest` and read CSRF via a `getCookie('csrftoken')` helper.
 - `media/` — user-uploaded files (served at `/media/` only when `DEBUG=True`). `static/` is the source dir; `staticfiles/` is the collectstatic output and is committed, so **after editing anything in `static/`, run `collectstatic`** so the deployed copy stays in sync.
 - PWA: web app manifest, service worker served from `/sw.js` (see `Core/views.py`), offline page.

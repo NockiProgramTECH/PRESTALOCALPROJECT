@@ -32,7 +32,7 @@ class FavoritesScreen extends ConsumerWidget {
           child: CustomScrollView(
             slivers: [
               const SliverToBoxAdapter(child: AppHeader.slim(
-                title: 'PrestLocal',
+                title: 'LesProduFao',
                 subtitle: 'Favoris',
               )),
               // En-tête

@@ -30,11 +30,11 @@ class StatusPills extends StatelessWidget {
   }
 }
 
-/// Pastille « Vérifié PrestLocal » : fond émeraude clair + icône bouclier.
+/// Pastille « Vérifié LesProduFao » : fond émeraude clair + icône bouclier.
 class VerifiedPill extends StatelessWidget {
   final String label;
 
-  const VerifiedPill({super.key, this.label = 'Vérifié PrestLocal'});
+  const VerifiedPill({super.key, this.label = 'Vérifié LesProduFao'});
 
   @override
   Widget build(BuildContext context) {

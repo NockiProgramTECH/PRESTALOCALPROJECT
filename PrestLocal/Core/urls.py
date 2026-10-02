@@ -1,5 +1,5 @@
 """
-URL configuration for the PrestLocal project (Django 5.2).
+URL configuration for the LesProduFao project (Django 5.2).
 
 - `/`            : site web (templates + PWA)
 - `/api/`        : API REST (DRF + JWT) consommée par l'app Flutter

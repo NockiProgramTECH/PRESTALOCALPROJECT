@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Mon espace client - PrestaLocal{% endblock %}
+{% block title %}Mon espace client - LesProduFao{% endblock %}
 
 {% block extrastyle %}
 <link rel="stylesheet" href="{% static 'css/client_dashboard.css' %}">
@@ -62,7 +62,7 @@
                 {% if fav.prestataire.photo_profil %}
                     <img src="{{ fav.prestataire.photo_profil.url }}" alt="">
                 {% else %}
-                    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary-green),#075985);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;flex-shrink:0;">
+                    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary-green),#E07228);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;flex-shrink:0;">
                         {{ fav.prestataire.first_name|slice:":1" }}{{ fav.prestataire.last_name|slice:":1" }}
                     </div>
                 {% endif %}

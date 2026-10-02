@@ -1,4 +1,4 @@
-"""Vues de l'API REST PrestLocal (DRF).
+"""Vues de l'API REST LesProduFao (DRF).
 
 Organisation :
 

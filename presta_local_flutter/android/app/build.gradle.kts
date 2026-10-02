@@ -18,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.presta.presta_local_flutter"
+    namespace = "bf.lesprodufao.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -33,7 +33,7 @@ android {
 
     defaultConfig {
         // ID unique Play Store — figé au premier upload, ne plus le changer ensuite.
-        applicationId = "bf.presta.local"
+        applicationId = "bf.lesprodufao.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // minSdk 23 requis par flutter_secure_storage.

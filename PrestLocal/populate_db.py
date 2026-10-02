@@ -70,7 +70,7 @@ def populate():
     # 4. Création des Prestataires
     prestataires_mock = [
         {
-            "email": "mamadou@prestalocal.bf",
+            "email": "mamadou@lesprodufao.bf",
             "first_name": "Mamadou",
             "last_name": "Konaté",
             "telephone": "+22670112233",
@@ -84,7 +84,7 @@ def populate():
             "rating": 4.7
         },
         {
-            "email": "awa@prestalocal.bf",
+            "email": "awa@lesprodufao.bf",
             "first_name": "Awa",
             "last_name": "Traoré",
             "telephone": "+22676445566",
@@ -98,7 +98,7 @@ def populate():
             "rating": 4.8
         },
         {
-            "email": "issa@prestalocal.bf",
+            "email": "issa@lesprodufao.bf",
             "first_name": "Issa",
             "last_name": "Ouédraogo",
             "telephone": "+22665889900",
@@ -112,7 +112,7 @@ def populate():
             "rating": 4.9
         },
         {
-            "email": "boureima@prestalocal.bf",
+            "email": "boureima@lesprodufao.bf",
             "first_name": "Boureima",
             "last_name": "S.",
             "telephone": "+22670123456",
@@ -126,7 +126,7 @@ def populate():
             "rating": 4.6
         },
         {
-            "email": "adama@prestalocal.bf",
+            "email": "adama@lesprodufao.bf",
             "first_name": "Adama",
             "last_name": "Zongo",
             "telephone": "+22671987654",
@@ -140,7 +140,7 @@ def populate():
             "rating": 4.7
         },
         {
-            "email": "fatoumata@prestalocal.bf",
+            "email": "fatoumata@lesprodufao.bf",
             "first_name": "Fatoumata",
             "last_name": "K.",
             "telephone": "+22678234567",
@@ -154,7 +154,7 @@ def populate():
             "rating": 4.7
         },
         {
-            "email": "seydou@prestalocal.bf",
+            "email": "seydou@lesprodufao.bf",
             "first_name": "Seydou",
             "last_name": "Diallo",
             "telephone": "+22672345678",
@@ -168,7 +168,7 @@ def populate():
             "rating": 4.5
         },
         {
-            "email": "moussa@prestalocal.bf",
+            "email": "moussa@lesprodufao.bf",
             "first_name": "Moussa",
             "last_name": "Barro",
             "telephone": "+22675987654",
@@ -185,11 +185,11 @@ def populate():
 
     # Utilisateur générique pour laisser des avis
     client_user, _ = Prestataire.objects.get_or_create(
-        email="client@prestalocal.bf",
+        email="client@lesprodufao.bf",
         defaults={
             "first_name": "Abdoulaye",
             "last_name": "K.",
-            "username": "client@prestalocal.bf",
+            "username": "client@lesprodufao.bf",
             "is_active": True
         }
     )

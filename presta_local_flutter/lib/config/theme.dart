@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Système de design « Warm Kinetic Modern » (maquette Stitch
-/// `stitch_refonte_plateforme_prestlocal`, fichier `warm_kinetic_modern/DESIGN.md`).
+/// `stitch_refonte_plateforme_lesprodufao`, fichier `warm_kinetic_modern/DESIGN.md`).
 ///
 /// - Primaire citrus `#FF8A3D` (état pressé `#E07228`)
 /// - Encre navy `#1E293B` (textes, bordures structurelles)

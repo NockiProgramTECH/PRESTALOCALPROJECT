@@ -7,7 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/brand_mark.dart';
 import 'password_reset_screen.dart';
 
-/// Écran de connexion (maquette « connexion_prestlocal »).
+/// Écran de connexion (maquette « connexion_lesprodufao »).
 ///
 /// Deux modes : Téléphone (+226, visuel pour l'instant) et Email
 /// (fonctionnel, JWT). Le reste (OTP, Google/Apple) est annoncé
@@ -132,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   BrandMark(size: 26, radius: 8, iconSize: 14),
                   SizedBox(width: 8),
                   Text(
-                    'PrestLocal',
+                    'LesProduFao',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -642,7 +642,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-/// Écran d'inscription (maquette « inscription_prestlocal »).
+/// Écran d'inscription (maquette « inscription_lesprodufao »).
 ///
 /// 2 étapes : formulaire (rôle, identité, zone, mot de passe) puis
 /// vérification du code email. Le backend exige un email : le champ
@@ -802,7 +802,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           BrandMark(size: 26, radius: 8, iconSize: 14),
                           SizedBox(width: 8),
                           Text(
-                            'PrestLocal',
+                            'LesProduFao',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
@@ -861,7 +861,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
       const SizedBox(height: 12),
       const Text(
-        'Rejoignez PrestLocal',
+        'Rejoignez LesProduFao',
         style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
@@ -1429,7 +1429,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     decoration: TextDecoration.underline,
                   ),
                 ),
-                TextSpan(text: ' de PrestLocal.'),
+                TextSpan(text: ' de LesProduFao.'),
               ],
             ),
           ),

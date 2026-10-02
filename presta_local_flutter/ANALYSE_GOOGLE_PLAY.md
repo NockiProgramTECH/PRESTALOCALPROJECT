@@ -1,4 +1,4 @@
-# Analyse de conformité Google Play — PrestA Local Flutter
+# Analyse de conformité Google Play — LesProduFao Flutter
 
 **Date :** 2026-08-02
 **Objectif :** identifier les anomalies (bugs invisibles) susceptibles de faire **rejeter** l'application lors de la soumission à Google Play, avec les références exactes des fichiers et les corrections étape par étape.
@@ -16,7 +16,7 @@
 - `android/app/src/debug/AndroidManifest.xml` (ligne 6) → permission **présente uniquement en debug**
 - `android/app/src/profile/AndroidManifest.xml` → permission présente uniquement en profil
 
-**Le bug invisible :** Flutter ne met `INTERNET` que dans les manifests `debug` et `profile` par défaut. En **build release** (`flutter build appbundle`), seul le manifest `main` est fusionné : la permission `INTERNET` **disparaît**. Résultat : toutes les requêtes HTTP(S) (login, feed, messages, favoris, upload photo) et les WebSockets échouent avec `SocketException: Failed host lookup: 'prestalocal.onrender.com'`.
+**Le bug invisible :** Flutter ne met `INTERNET` que dans les manifests `debug` et `profile` par défaut. En **build release** (`flutter build appbundle`), seul le manifest `main` est fusionné : la permission `INTERNET` **disparaît**. Résultat : toutes les requêtes HTTP(S) (login, feed, messages, favoris, upload photo) et les WebSockets échouent avec `SocketException: Failed host lookup: 'lesprodufao.onrender.com'`.
 
 **Conséquence Google Play :** l'application ouvre un écran de connexion totalement non fonctionnel → rejet pour « application cassée / crash » dès le test de validation.
 
@@ -113,9 +113,9 @@ signingConfig = signingConfigs.getByName("debug")
 **Correction :** ajouter dans `ios/Runner/Info.plist`, dans le `<dict>` racine :
 ```xml
 <key>NSPhotoLibraryUsageDescription</key>
-<string>PrestA Local a besoin d'accéder à vos photos pour mettre à jour votre photo de profil.</string>
+<string>LesProduFao a besoin d'accéder à vos photos pour mettre à jour votre photo de profil.</string>
 <key>NSCameraUsageDescription</key>
-<string>PrestA Local utilise la caméra pour prendre une photo de profil.</string>
+<string>LesProduFao utilise la caméra pour prendre une photo de profil.</string>
 ```
 
 ---
@@ -150,12 +150,12 @@ static const FlutterSecureStorage _secure = FlutterSecureStorage(
 
 **Correction (recommandé) :** déclarer la police en local dans `pubspec.yaml` (`fonts:`) et utiliser `GoogleFonts.<police>` avec `fonts: <Police>` local, ou plus simplement vérifier que le backend/App sont stables pour éviter de dépendre d'une connexion au démarrage. Si le rendu est acceptable hors-ligne, ce point est non bloquant.
 
-### 6. `baseUrl` en dur vers `prestalocal.onrender.com` (plan gratuit qui « dort »)
+### 6. `baseUrl` en dur vers `lesprodufao.onrender.com` (plan gratuit qui « dort »)
 
 **Référence :** `lib/config/constants.dart`, lignes 17-18 :
 ```dart
-static const String baseUrl = 'https://prestalocal.onrender.com';
-static const String assetBaseUrl = 'https://prestalocal.onrender.com';
+static const String baseUrl = 'https://lesprodufao.onrender.com';
+static const String assetBaseUrl = 'https://lesprodufao.onrender.com';
 ```
 
 **Le bug invisible :** Render (plan gratuit) **endort** l'instance après 15 min d'inactivité → la 1ʳᵉ requête après réveil met 30-60 s à répondre. Le testeur Google Play voit des écrans « Erreur serveur » / temps de chargement infinis → **risque de rejet pour « application lente / ne fonctionne pas »**.
@@ -202,14 +202,14 @@ Future<void> initialize() async {
 
 **Référence :** `android/app/build.gradle.kts`, lignes 24 et 29 :
 ```kotlin
-applicationId = "com.presta.presta_local_flutter"
+applicationId = "bf.lesprodufao.app"
 versionCode = flutter.versionCode   // = 1
 versionName = flutter.versionName   // = 1.0.0
 ```
 
-- L'ID `com.presta.presta_local_flutter` est générique ; s'il n'est pas **unique dans le Play Store**, l'upload est refusé. Corrigez-le avant le premier téléversement (il ne pourra plus changer ensuite) :
+- L'ID `bf.lesprodufao.app` est aligné sur la marque. Vérifiez qu'il est **unique dans le Play Store** avant le premier téléversement : une fois publié, il ne peut plus être changé. S'il est déjà pris, choisissez une variante explicite (ex. `bf.lesprodufao.app.mobile`) **avant** l'upload :
   ```kotlin
-  applicationId = "bf.presta.local"
+  applicationId = "bf.lesprodufao.app"   // ou une variante si déjà pris
   ```
 - Incrémentez `versionCode` à chaque build (ex. `2`, `3`…). Déclarez la version dans `pubspec.yaml` (`version: 1.0.0+1`) et vérifiez que `versionCode`/`versionName` remontent bien.
 

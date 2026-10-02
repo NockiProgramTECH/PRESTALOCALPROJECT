@@ -1,12 +1,12 @@
-# Rapport de corrections — PrestLocal (API Django + application Flutter)
+# Rapport de corrections — LesProduFao (API Django + application Flutter)
 
 > Ce rapport recense les instructions trouvées dans les fichiers du dépôt
 > (`presta_local_flutter/prompt.md`, `presta_local_flutter/ROADMAP.md`,
-> `CONTEXT_PROJET.md`, `PrestLocal/SUGGESTIONS.md`,
-> `PrestLocal/ROADMAP_OPTIMISATION.md`) et ce qui a été mis en place, corrigé
+> `CONTEXT_PROJET.md`, `LesProduFao/SUGGESTIONS.md`,
+> `LesProduFao/ROADMAP_OPTIMISATION.md`) et ce qui a été mis en place, corrigé
 > ou volontairement écarté.
 >
-> Branche de travail : `arena/01a0e780-prestalocalproject`.
+> Branche de travail : `arena/01a0e780-lesprodufaoproject`.
 
 ---
 
@@ -76,7 +76,7 @@ l'utilisateur connecté), la liste est filtrée/triée (`ville`, `metier`,
 | Fiche prestataire : ne pas afficher de prix | Grille tarifaire et bloc « estimation main-d'œuvre » supprimés ; onglet renommé « Services » (« Sur mesure » au lieu de « Sur devis ») |
 | Fiche prestataire : doivent apparaître nom, prénom, métier, ville, description, cover, photo, actions (message, appel, WhatsApp, Facebook), évaluations | Carte identité (nom, métier, zone, note + nombre d'avis, « À propos ») + rangée de **4 boutons** `Expanded` (Message / Appel / WhatsApp / Facebook) + onglet Avis avec note globale et commentaires |
 | Messagerie : « No Material widget found », « bottom overflowed by 99460 pixels », nom du destinataire souligné | `messages_screen.dart` et `chat_screen.dart` réécrits : `Material` explicite autour des tuiles, `Column` bornée (`Expanded` + liste en `reverse: true`), bulles limitées à 78 % de la largeur, styles de texte explicites |
-| Drawer : « bottom overflowed by 38 pixels » sous « Connectez-vous pour plus de fonctionnalités » | Chaîne **inexistante dans le code** (seule occurrence : `ROADMAP.md`) et aucun `Drawer` Flutter dans `lib/`. Le menu latéral réel du site (`PrestLocal/templates/includes/navbar.html` + `.mobile-nav` de `static/css/main.css`) a été consolidé : `100dvh`, marge basse = hauteur de la barre de navigation (64 px) + *safe-area*, `z-index` au-dessus de la barre, bloc d'authentification non rogné |
+| Drawer : « bottom overflowed by 38 pixels » sous « Connectez-vous pour plus de fonctionnalités » | Chaîne **inexistante dans le code** (seule occurrence : `ROADMAP.md`) et aucun `Drawer` Flutter dans `lib/`. Le menu latéral réel du site (`LesProduFao/templates/includes/navbar.html` + `.mobile-nav` de `static/css/main.css`) a été consolidé : `100dvh`, marge basse = hauteur de la barre de navigation (64 px) + *safe-area*, `z-index` au-dessus de la barre, bloc d'authentification non rogné |
 | Profil : supprimer la carte « Mes commandes » | Carte « Mes demandes & devis » retirée du menu « MON ACTIVITÉ » |
 
 ### 2.2 Mise en relation avec l'API (données réelles, plus de mocks)
@@ -120,7 +120,7 @@ l'utilisateur connecté), la liste est filtrée/triée (`ville`, `metier`,
 - `test/widget_test.dart` réécrit : tests de fumée **sans réseau**
   (écran de démarrage, barre de navigation, état vide des favoris, lecture
   d'une réponse API par `ProviderModel.fromJson`). L'ancien test échouait
-  (« PrestA Local BF », onglet « Rechercher »).
+  (« LesProduFao BF », onglet « Rechercher »).
 
 ---
 
@@ -173,3 +173,59 @@ flutter pub get
 flutter run --dart-define=API_BASE_URL=http://192.168.1.85:8000   # IP de votre poste
 flutter test
 ```
+
+---
+
+## 6. Rebranding « LesProduFao » + alignement du site web sur l'app
+
+### 6.1 Renommage de la marque
+
+- **Nom affiché partout : `LesProduFao`** (anciennement PrestaLocal / PrestLocal / PrestA Local).
+  Aucune occurrence de l'ancien nom ne subsiste : ni dans les templates, les e-mails,
+  le manifest PWA, le service worker, les métadonnées, ni dans les archives
+  (le paquet `stitch_refonte_plateforme_lesprodufao.zip` a été reconstruit et ses
+  dossiers/écrans renommés).
+- **Identifiants techniques renommés** (application Flutter) :
+  - package Dart `lesprodufao_flutter` (imports `package:lesprodufao_flutter/...`) ;
+  - `applicationId` Android / bundle iOS / application id Linux / macOS : `bf.lesprodufao.app`
+    (paquet Kotlin déplacé dans `android/app/src/main/kotlin/bf/lesprodufao/app/`) ;
+  - libellés affichés Android/iOS/Web/Windows/Linux : `LesProduFao` ;
+  - conteneurs Docker, base PostgreSQL et upstream nginx renommés (`lesprodufao`).
+- **Dossiers du dépôt conservés** : `PrestLocal/` (backend) et `presta_local_flutter/`
+  (app) pour ne pas casser les scripts, chemins de déploiement et l'historique Git.
+- **Nouvelle identité visuelle du site web** : icônes PWA (48 → 512 px) et favicon
+  régénérés — carré arrondi dégradé citrus + clé à molette blanche, comme `BrandMark`
+  dans l'app.
+
+### 6.2 Design du site web aligné sur l'application
+
+Le site Django reprend désormais la charte « Warm Kinetic Modern » de l'app mobile :
+
+| Token | Valeur | Usage |
+| --- | --- | --- |
+| `--primary-green` | `#FF8A3D` | actions, accents, liens actifs (alias historique conservé) |
+| `--primary-pressed` | `#E07228` | états pressés / survol |
+| `--primary-strong` | `#9A4600` | texte accentué sur fond orange clair |
+| `--primary-soft` / `--bg-soft-green` | `#FFDBC9` / `#FFEDE3` | fonds teintés |
+| `--text-dark` | `#1E293B` | encre navy (textes, structure) |
+| `--success` | `#10B981` (texte `#047857`) | statuts « Vérifié », « Disponible » |
+| `--bg-light` | `#FBF9F7` | canevas sable |
+| `--card-border` / `--grey-200` | `#EAE3DB` | bordures chaudes |
+| `--font-sans` | `Plus Jakarta Sans` | typographie unique (remplace Inter) |
+| rayons | `8 / 12 / 24 / 999 px` | champs & boutons / cartes / pastilles |
+
+Autres ajustements : bannière de confiance passée en navy avec icônes émeraude,
+boutons d'action orange (texte blanc, survol `#E07228`), cartes blanches à 24 px de
+rayon avec bordure chaude, en-tête mobile en surface claire, badge « Plateforme n°1
+à Ouaga » sur le hero (comme l'écran d'accueil de l'app), anneau de focus orange
+sur les champs, bulles de messagerie orange (identiques à l'app).
+
+### 6.3 Vérifications
+
+- `python manage.py check` : aucun problème.
+- `python manage.py test api` : **30 tests OK**.
+- `collectstatic` régénéré ; pages publiques et authentifiées testées
+  (accueil, prestataires, fiche prestataire, à propos, connexion, inscription,
+  profil, notifications, messagerie, hors-ligne) — plus aucune trace de l'ancien nom.
+- Recherche plein texte dans le dépôt (hors dossiers `PrestLocal/` et
+  `presta_local_flutter/`, conservés) : 0 occurrence de l'ancienne marque.

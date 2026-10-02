@@ -16,7 +16,7 @@ import '../../widgets/shimmer_loading.dart';
 import '../feed/feed_detail_screen.dart';
 import '../feed/feed_screen.dart';
 
-/// Écran d'accueil (maquette « accueil_prestlocal ») :
+/// Écran d'accueil (maquette « accueil_lesprodufao ») :
 /// en-tête, hero + recherche, garanties, catégories en grille,
 /// prestataires recommandés, fil d'actualité.
 class HomeScreen extends ConsumerWidget {

@@ -1,6 +1,6 @@
-# Suggestions d'Ajustements et Évolutions - PrestaLocal
+# Suggestions d'Ajustements et Évolutions - LesProduFao
 
-Ce document répertorie les points d'amélioration, les fonctionnalités à ajouter et les corrections suggérées pour faire passer le projet **PrestaLocal** d'un prototype à une application de production robuste.
+Ce document répertorie les points d'amélioration, les fonctionnalités à ajouter et les corrections suggérées pour faire passer le projet **LesProduFao** d'un prototype à une application de production robuste.
 
 ---
 [x] = Fonctionnalité déjà implémentée

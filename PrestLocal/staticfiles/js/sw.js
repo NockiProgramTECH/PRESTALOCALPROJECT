@@ -1,5 +1,5 @@
 /**
- * PrestaLocal — Service Worker
+ * LesProduFao — Service Worker
  *
  * Stratégies de cache :
  *   - Cache First (assets statiques : CSS, JS, polices)
@@ -8,9 +8,9 @@
  */
 
 const CACHE_VERSION = 'v1';
-const STATIC_CACHE = `prestalocal-static-${CACHE_VERSION}`;
-const PAGE_CACHE   = `prestalocal-pages-${CACHE_VERSION}`;
-const IMAGE_CACHE  = `prestalocal-images-${CACHE_VERSION}`;
+const STATIC_CACHE = `lesprodufao-static-${CACHE_VERSION}`;
+const PAGE_CACHE   = `lesprodufao-pages-${CACHE_VERSION}`;
+const IMAGE_CACHE  = `lesprodufao-images-${CACHE_VERSION}`;
 
 /* ── Ressources pré-cachées au moment de l'installation ── */
 const PRECACHE_URLS = [
@@ -43,7 +43,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames
           .filter((name) => {
-            return name.startsWith('prestalocal-') &&
+            return name.startsWith('lesprodufao-') &&
                    !name.endsWith(CACHE_VERSION);
           })
           .map((name) => caches.delete(name))
@@ -178,7 +178,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'PrestaLocal', options)
+    self.registration.showNotification(data.title || 'LesProduFao', options)
   );
 });
 

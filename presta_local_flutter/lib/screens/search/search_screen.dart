@@ -12,7 +12,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/provider_card.dart';
 import '../../widgets/shimmer_loading.dart';
 
-/// Écran de recherche (maquette « recherche_résultats_prestlocal ») :
+/// Écran de recherche (maquette « recherche_r_sultats_lesprodufao ») :
 /// en-tête, carte de filtres, chips actifs, bannière carte,
 /// tri, liste de résultats, appel à l'action Pro.
 class SearchScreen extends ConsumerStatefulWidget {
@@ -787,7 +787,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Rejoignez les 650+ professionnels vérifiés de PrestLocal et recevez des demandes de chantiers tous les jours.',
+            'Rejoignez les 650+ professionnels vérifiés de LesProduFao et recevez des demandes de chantiers tous les jours.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppTheme.muted, height: 1.5),
           ),

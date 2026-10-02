@@ -1,8 +1,8 @@
-# PrestaLocal — Contexte projet pour IA
+# LesProduFao — Contexte projet pour IA
 
 ## Intention du projet
 
-**PrestaLocal** est une plateforme de mise en relation entre **prestataires de services locaux** et **clients** à **Ouagadougou, Burkina Faso**. L'objectif est de permettre aux utilisateurs de trouver, contacter et évaluer des prestataires de proximité (plombiers, électriciens, couturiers, etc.), avec un système d'abonnement pour la visibilité des prestataires.
+**LesProduFao** est une plateforme de mise en relation entre **prestataires de services locaux** et **clients** à **Ouagadougou, Burkina Faso**. L'objectif est de permettre aux utilisateurs de trouver, contacter et évaluer des prestataires de proximité (plombiers, électriciens, couturiers, etc.), avec un système d'abonnement pour la visibilité des prestataires.
 
 ---
 
@@ -24,8 +24,8 @@
 ## Architecture du projet
 
 ```
-PRESTALOCAL/
-├── PrestLocal/                    # Backend Django
+PRESTALOCALPROJECT/                  # dépôt (nom de dossier historique conservé)
+├── PrestLocal/                     # Backend Django — produit « LesProduFao »
 │   ├── Core/                      # Config Django (settings, urls, asgi, wsgi, middleware)
 │   ├── main/                      # App principale : modèles User, Ville, Prestation, Realisation, Evaluation, Favorite, Notification
 │   ├── Abonnement/                # App abonnement : PlanAbonnement, Abonnement

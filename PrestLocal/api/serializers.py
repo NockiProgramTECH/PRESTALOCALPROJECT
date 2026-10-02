@@ -536,7 +536,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         send_code_email(
             user,
             code,
-            subject="Réinitialisation de mot de passe - PrestLocal",
+            subject="Réinitialisation de mot de passe - LesProduFao",
             template_name='emails/password_reset_code.html',
         )
         return user
@@ -643,7 +643,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         send_code_email(
             user,
             code,
-            subject="Code de vérification - PrestLocal",
+            subject="Code de vérification - LesProduFao",
             template_name='emails/verification_code.html',
         )
         return user

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.presta" "\0"
-            VALUE "FileDescription", "presta_local_flutter" "\0"
+            VALUE "CompanyName", "bf.lesprodufao" "\0"
+            VALUE "FileDescription", "LesProduFao" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "presta_local_flutter" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.presta. All rights reserved." "\0"
-            VALUE "OriginalFilename", "presta_local_flutter.exe" "\0"
-            VALUE "ProductName", "presta_local_flutter" "\0"
+            VALUE "InternalName", "lesprodufao_flutter" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 bf.lesprodufao. All rights reserved." "\0"
+            VALUE "OriginalFilename", "lesprodufao_flutter.exe" "\0"
+            VALUE "ProductName", "LesProduFao" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
